@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>OpenVulScan.Core</AssemblyName>
+    <RootNamespace>OpenVulScan</RootNamespace>
+  </PropertyGroup>
+</Project>

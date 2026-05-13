@@ -1,0 +1,86 @@
+Found 1 method(s) in spikes/CfgPlay/test-files/03-try-catch.cs
+======================================================================
+
+=== CFG for method: TryCatchFinally ===
+Blocks: 8
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    SimpleAssignment Type=Int32
+      LocalReference Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations:
+    ExpressionStatement
+      SimpleAssignment Type=Int32
+        LocalReference Type=Int32
+        Invocation Type=Int32
+          Argument
+            ParameterReference Type=String
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  EnclosingRegion: Try
+
+Block [3]: Block
+  Operations:
+    SimpleAssignment
+      LocalReference Type=FormatException
+      CaughtException Type=FormatException
+    ExpressionStatement
+      SimpleAssignment Type=Int32
+        LocalReference Type=Int32
+        Unary Type=Int32
+          Literal Type=Int32
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  EnclosingRegion: Catch
+
+Block [4]: Block
+  Operations:
+    SimpleAssignment
+      LocalReference Type=Exception
+      CaughtException Type=Exception
+    ExpressionStatement
+      SimpleAssignment Type=Int32
+        LocalReference Type=Int32
+        Unary Type=Int32
+          Literal Type=Int32
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  EnclosingRegion: Catch
+
+Block [5]: Block
+  Operations:
+    ExpressionStatement
+      SimpleAssignment Type=Int32
+        LocalReference Type=Int32
+        Binary Type=Int32
+          LocalReference Type=Int32
+          Literal Type=Int32
+  FallThroughSuccessor -> []
+    Semantics: StructuredExceptionHandling
+  EnclosingRegion: Finally
+
+Block [6]: Block
+  Operations: (none)
+  BranchValue:
+    LocalReference Type=Int32
+  FallThroughSuccessor -> [7]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [7]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------

@@ -1,0 +1,218 @@
+Found 3 method(s) in spikes/CfgPlay/test-files/05-nullables.cs
+======================================================================
+
+=== CFG for method: ConditionalAccess ===
+Blocks: 8
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    FlowCapture Id=1
+      ParameterReference Type=String
+  BranchValue:
+    IsNull Type=Boolean
+      FlowCaptureReference Id=1 Type=String
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  ConditionalSuccessor -> [5]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations:
+    FlowCapture Id=2
+      Invocation Type=String
+        FlowCaptureReference Id=1 Type=String
+  FallThroughSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [3]: Block
+  Operations: (none)
+  BranchValue:
+    IsNull Type=Boolean
+      FlowCaptureReference Id=2 Type=String
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  ConditionalSuccessor -> [5]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [4]: Block
+  Operations:
+    FlowCapture Id=0
+      Invocation Type=String
+        FlowCaptureReference Id=2 Type=String
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [5]: Block
+  Operations:
+    FlowCapture Id=0
+      DefaultValue Type=String
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [6]: Block
+  Operations: (none)
+  BranchValue:
+    FlowCaptureReference Id=0 Type=String
+  FallThroughSuccessor -> [7]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [7]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------
+
+=== CFG for method: NullCoalescing ===
+Blocks: 6
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    FlowCapture Id=0
+      ParameterReference Type=String
+  BranchValue:
+    IsNull Type=Boolean
+      FlowCaptureReference Id=0 Type=String
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  ConditionalSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations:
+    FlowCapture Id=1
+      FlowCaptureReference Id=0 Type=String
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [3]: Block
+  Operations:
+    FlowCapture Id=1
+      Literal Type=String
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [4]: Block
+  Operations: (none)
+  BranchValue:
+    FlowCaptureReference Id=1 Type=String
+  FallThroughSuccessor -> [5]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [5]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------
+
+=== CFG for method: NullConditionalAssignment ===
+Blocks: 10
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    FlowCapture Id=1
+      ParameterReference Type=String
+  BranchValue:
+    IsNull Type=Boolean
+      FlowCaptureReference Id=1 Type=String
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  ConditionalSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations:
+    FlowCapture Id=0
+      Invocation Type=String
+        FlowCaptureReference Id=1 Type=String
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [3]: Block
+  Operations:
+    FlowCapture Id=0
+      DefaultValue Type=String
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [4]: Block
+  Operations:
+    SimpleAssignment Type=String
+      LocalReference Type=String
+      FlowCaptureReference Id=0 Type=String
+  FallThroughSuccessor -> [5]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [5]: Block
+  Operations:
+    FlowCapture Id=2
+      LocalReference Type=String
+  BranchValue:
+    IsNull Type=Boolean
+      FlowCaptureReference Id=2 Type=String
+  FallThroughSuccessor -> [6]
+    Semantics: Regular
+  ConditionalSuccessor -> [7]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [6]: Block
+  Operations:
+    FlowCapture Id=3
+      FlowCaptureReference Id=2 Type=String
+  FallThroughSuccessor -> [8]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [7]: Block
+  Operations:
+    FlowCapture Id=3
+      FieldReference Type=String
+  FallThroughSuccessor -> [8]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [8]: Block
+  Operations: (none)
+  BranchValue:
+    FlowCaptureReference Id=3 Type=String
+  FallThroughSuccessor -> [9]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [9]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------

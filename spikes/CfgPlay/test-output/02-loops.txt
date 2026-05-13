@@ -1,0 +1,128 @@
+Found 2 method(s) in spikes/CfgPlay/test-files/02-loops.cs
+======================================================================
+
+=== CFG for method: ForLoop ===
+Blocks: 7
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    SimpleAssignment Type=Int32
+      LocalReference Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations:
+    SimpleAssignment Type=Int32
+      LocalReference Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [3]: Block
+  Operations: (none)
+  BranchValue:
+    Binary Type=Boolean
+      LocalReference Type=Int32
+      ParameterReference Type=Int32
+  FallThroughSuccessor -> [4]
+    Semantics: Regular
+  ConditionalSuccessor -> [5]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [4]: Block
+  Operations:
+    ExpressionStatement
+      CompoundAssignment Type=Int32
+        LocalReference Type=Int32
+        LocalReference Type=Int32
+    ExpressionStatement
+      Increment Type=Int32
+        LocalReference Type=Int32
+  FallThroughSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [5]: Block
+  Operations: (none)
+  BranchValue:
+    LocalReference Type=Int32
+  FallThroughSuccessor -> [6]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [6]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------
+
+=== CFG for method: WhileLoop ===
+Blocks: 6
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations:
+    SimpleAssignment Type=Int32
+      LocalReference Type=Int32
+      Literal Type=Int32
+    SimpleAssignment Type=Int32
+      LocalReference Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [2]: Block
+  Operations: (none)
+  BranchValue:
+    Binary Type=Boolean
+      LocalReference Type=Int32
+      ParameterReference Type=Int32
+  FallThroughSuccessor -> [3]
+    Semantics: Regular
+  ConditionalSuccessor -> [4]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [3]: Block
+  Operations:
+    ExpressionStatement
+      CompoundAssignment Type=Int32
+        LocalReference Type=Int32
+        LocalReference Type=Int32
+    ExpressionStatement
+      Increment Type=Int32
+        LocalReference Type=Int32
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  EnclosingRegion: LocalLifetime
+
+Block [4]: Block
+  Operations: (none)
+  BranchValue:
+    LocalReference Type=Int32
+  FallThroughSuccessor -> [5]
+    Semantics: Return
+  EnclosingRegion: LocalLifetime
+
+Block [5]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------

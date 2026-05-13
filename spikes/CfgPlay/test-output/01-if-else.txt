@@ -1,0 +1,91 @@
+Found 2 method(s) in spikes/CfgPlay/test-files/01-if-else.cs
+======================================================================
+
+=== CFG for method: SimpleIfElse ===
+Blocks: 5
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations: (none)
+  BranchValue:
+    Binary Type=Boolean
+      ParameterReference Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  ConditionalSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [2]: Block
+  Operations: (none)
+  BranchValue:
+    Literal Type=Int32
+  FallThroughSuccessor -> [4]
+    Semantics: Return
+  EnclosingRegion: Root
+
+Block [3]: Block
+  Operations: (none)
+  BranchValue:
+    Unary Type=Int32
+      Literal Type=Int32
+  FallThroughSuccessor -> [4]
+    Semantics: Return
+  EnclosingRegion: Root
+
+Block [4]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------
+
+=== CFG for method: InstanceMethod ===
+Blocks: 5
+
+Block [0]: Entry
+  Operations: (none)
+  FallThroughSuccessor -> [1]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [1]: Block
+  Operations: (none)
+  BranchValue:
+    Binary Type=Boolean
+      ParameterReference Type=Int32
+      FieldReference Type=Int32
+        InstanceReference ReferenceKind=ContainingTypeInstance Type=TestIfElse
+  FallThroughSuccessor -> [2]
+    Semantics: Regular
+  ConditionalSuccessor -> [3]
+    Semantics: Regular
+  EnclosingRegion: Root
+
+Block [2]: Block
+  Operations: (none)
+  BranchValue:
+    FieldReference Type=Int32
+      InstanceReference ReferenceKind=ContainingTypeInstance Type=TestIfElse
+  FallThroughSuccessor -> [4]
+    Semantics: Return
+  EnclosingRegion: Root
+
+Block [3]: Block
+  Operations: (none)
+  BranchValue:
+    ParameterReference Type=Int32
+  FallThroughSuccessor -> [4]
+    Semantics: Return
+  EnclosingRegion: Root
+
+Block [4]: Exit
+  Operations: (none)
+  EnclosingRegion: Root
+
+----------------------------------------------------------------------

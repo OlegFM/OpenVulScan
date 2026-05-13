@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/OpenVulScan.Core/OpenVulScan.Core.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpenVulScan.Core.Tests/OpenVulScan.Core.Tests.csproj" />
+  </Folder>
 </Solution>

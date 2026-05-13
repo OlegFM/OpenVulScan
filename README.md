@@ -87,6 +87,28 @@ openvulscan/
 - 5 позитивных кейсов — все детектируются
 - 3 негативных кейса — 0 ложных срабатываний
 
+## CI/CD
+
+Проект использует GitHub Actions с матричной сборкой (Ubuntu / Windows / macOS) на .NET 10.
+
+### Настройка защиты ветки `main`
+
+Чтобы блокировать слияние PR до успешного прохождения CI:
+
+1. Откройте **Settings → Branches** в репозитории GitHub.
+2. Нажмите **Add branch protection rule**.
+3. В поле **Branch name pattern** введите `main`.
+4. Включите опции:
+   - **Require a pull request before merging**
+   - **Require status checks to pass before merging**
+   - В блоке статус-чеков отметьте:
+     - `Build & Test (ubuntu-latest)`
+     - `Build & Test (windows-latest)`
+     - `Build & Test (macos-latest)`
+5. Сохраните правило (**Create**).
+
+Теперь PR в `main` будет заблокирован до тех пор, пока все задания workflow не завершатся успешно.
+
 ## Лицензия
 
 - Код: [Apache 2.0](LICENSE)

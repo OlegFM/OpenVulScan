@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MediumApp/MediumApp.csproj" />
+  <Project Path="MediumLib/MediumLib.csproj" />
+  <Project Path="MediumTests/MediumTests.csproj" />
+</Solution>

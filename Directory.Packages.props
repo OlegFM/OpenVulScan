@@ -13,6 +13,7 @@
 
     <!-- Roslyn -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.0.0" />
 
     <!-- Benchmarking -->
@@ -20,5 +21,8 @@
 
     <!-- CLI -->
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+
+    <!-- MSBuild Locator -->
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.9.1" />
   </ItemGroup>
 </Project>

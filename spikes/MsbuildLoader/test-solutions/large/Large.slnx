@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LargeApp/LargeApp.csproj" />
+  <Project Path="LargeLib1/LargeLib1.csproj" />
+  <Project Path="LargeLib2/LargeLib2.csproj" />
+  <Project Path="LargeLib3/LargeLib3.csproj" />
+  <Project Path="LargeLib4/LargeLib4.csproj" />
+</Solution>

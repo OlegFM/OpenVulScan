@@ -122,6 +122,12 @@ sealed class BinaryOperationWalker : OperationVisitor
             BinaryOperatorKind.And => true,
             BinaryOperatorKind.Or => true,
             BinaryOperatorKind.ExclusiveOr => true,
+            BinaryOperatorKind.LessThan => true,
+            BinaryOperatorKind.LessThanOrEqual => true,
+            BinaryOperatorKind.GreaterThan => true,
+            BinaryOperatorKind.GreaterThanOrEqual => true,
+            BinaryOperatorKind.LeftShift => true,
+            BinaryOperatorKind.RightShift => true,
             _ => false,
         };
     }
@@ -160,19 +166,25 @@ sealed class BinaryOperationWalker : OperationVisitor
 
             case IFieldReferenceOperation fldA when b is IFieldReferenceOperation fldB:
                 return fldA.Field.Name == fldB.Field.Name
+                    && SymbolEqualityComparer.Default.Equals(fldA.Field.ContainingType, fldB.Field.ContainingType)
                     && AreStructurallyEqual(fldA.Instance, fldB.Instance);
 
             case IPropertyReferenceOperation propA when b is IPropertyReferenceOperation propB:
                 return propA.Property.Name == propB.Property.Name
+                    && SymbolEqualityComparer.Default.Equals(propA.Property.ContainingType, propB.Property.ContainingType)
                     && AreStructurallyEqual(propA.Instance, propB.Instance);
 
             case IInstanceReferenceOperation instA when b is IInstanceReferenceOperation instB:
                 return instA.ReferenceKind == instB.ReferenceKind;
 
             case IInvocationOperation invA when b is IInvocationOperation invB:
-                return invA.TargetMethod.Name == invB.TargetMethod.Name
+                return SymbolEqualityComparer.Default.Equals(invA.TargetMethod, invB.TargetMethod)
                     && AreStructurallyEqual(invA.Instance, invB.Instance)
                     && ArgumentsEqual(invA.Arguments, invB.Arguments);
+
+            case IObjectCreationOperation newA when b is IObjectCreationOperation newB:
+                return SymbolEqualityComparer.Default.Equals(newA.Constructor, newB.Constructor)
+                    && ArgumentsEqual(newA.Arguments, newB.Arguments);
 
             case IConditionalAccessOperation condA when b is IConditionalAccessOperation condB:
                 return AreStructurallyEqual(condA.Operation, condB.Operation)
@@ -184,15 +196,14 @@ sealed class BinaryOperationWalker : OperationVisitor
                     && AreStructurallyEqual(ternA.WhenFalse, ternB.WhenFalse);
 
             default:
-                // For unhandled operation types, fall back to syntax text comparison.
-                // This keeps the spike pragmatic while remaining sound (conservative).
-                return a.Syntax.ToString() == b.Syntax.ToString();
+                // Fail closed: unhandled operation kinds are not considered equal.
+                return false;
         }
     }
 
     private static IOperation Unwrap(IOperation op)
     {
-        while (op is IConversionOperation conv)
+        while (op is IConversionOperation conv && IsIdentityConversion(conv))
         {
             op = conv.Operand;
         }
@@ -203,6 +214,11 @@ sealed class BinaryOperationWalker : OperationVisitor
         }
 
         return op;
+    }
+
+    private static bool IsIdentityConversion(IConversionOperation conv)
+    {
+        return SymbolEqualityComparer.Default.Equals(conv.Type, conv.Operand.Type);
     }
 
     private static bool ArgumentsEqual(IEnumerable<IArgumentOperation> aArgs, IEnumerable<IArgumentOperation> bArgs)

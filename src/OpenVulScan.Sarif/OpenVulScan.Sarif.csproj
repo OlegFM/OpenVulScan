@@ -6,5 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+    <ProjectReference Include="..\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
   </ItemGroup>
 </Project>

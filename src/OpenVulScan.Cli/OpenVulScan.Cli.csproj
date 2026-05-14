@@ -15,5 +15,10 @@
     <ProjectReference Include="..\OpenVulScan.Sarif\OpenVulScan.Sarif.csproj" />
     <ProjectReference Include="..\OpenVulScan.Configuration\OpenVulScan.Configuration.csproj" />
     <ProjectReference Include="..\OpenVulScan.Cache\OpenVulScan.Cache.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Rules.Ast\OpenVulScan.Rules.Ast.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Rules.DataFlow\OpenVulScan.Rules.DataFlow.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Rules.PathSensitive\OpenVulScan.Rules.PathSensitive.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Rules.Performance\OpenVulScan.Rules.Performance.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Rules.Taint\OpenVulScan.Rules.Taint.csproj" />
   </ItemGroup>
 </Project>

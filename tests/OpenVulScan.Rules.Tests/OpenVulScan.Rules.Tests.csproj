@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <AssemblyName>OpenVulScan.Rules.Tests</AssemblyName>
+    <RootNamespace>OpenVulScan</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

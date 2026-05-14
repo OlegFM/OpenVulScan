@@ -1,5 +1,5 @@
 namespace OpenVulScan;
 
-public static class Placeholder
+public static class ConfigurationPlaceholder
 {
 }

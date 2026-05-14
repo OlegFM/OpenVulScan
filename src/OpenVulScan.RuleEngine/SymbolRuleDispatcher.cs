@@ -16,46 +16,48 @@ public sealed class SymbolRuleDispatcher
         _compilation = compilation;
     }
 
-    public void Run(CancellationToken cancellationToken = default)
+    public IReadOnlyList<Diagnostic> Run(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        WalkNamespace(_compilation.GlobalNamespace, cancellationToken);
+        var diagnostics = new List<Diagnostic>();
+        WalkNamespace(_compilation.GlobalNamespace, diagnostics, cancellationToken);
+        return diagnostics;
     }
 
-    private void WalkNamespace(INamespaceSymbol namespaceSymbol, CancellationToken cancellationToken)
+    private void WalkNamespace(INamespaceSymbol namespaceSymbol, List<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         foreach (var member in namespaceSymbol.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            DispatchSymbol(member, cancellationToken);
+            DispatchSymbol(member, diagnostics, cancellationToken);
 
             if (member is INamedTypeSymbol namedType)
             {
-                WalkTypeMembers(namedType, cancellationToken);
+                WalkTypeMembers(namedType, diagnostics, cancellationToken);
             }
 
             if (member is INamespaceSymbol nestedNamespace)
             {
-                WalkNamespace(nestedNamespace, cancellationToken);
+                WalkNamespace(nestedNamespace, diagnostics, cancellationToken);
             }
         }
     }
 
-    private void WalkTypeMembers(INamedTypeSymbol typeSymbol, CancellationToken cancellationToken)
+    private void WalkTypeMembers(INamedTypeSymbol typeSymbol, List<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         foreach (var member in typeSymbol.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            DispatchSymbol(member, cancellationToken);
+            DispatchSymbol(member, diagnostics, cancellationToken);
 
             if (member is INamedTypeSymbol nestedType)
             {
-                WalkTypeMembers(nestedType, cancellationToken);
+                WalkTypeMembers(nestedType, diagnostics, cancellationToken);
             }
         }
     }
 
-    private void DispatchSymbol(ISymbol symbol, CancellationToken cancellationToken)
+    private void DispatchSymbol(ISymbol symbol, List<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         if (!symbol.Locations.Any(l => l.IsInSource))
         {
@@ -77,6 +79,8 @@ public sealed class SymbolRuleDispatcher
                 rule.Visit(symbol, context);
             }
         }
+
+        diagnostics.AddRange(context.Diagnostics);
     }
 
     private SemanticModel? GetSemanticModel(ISymbol symbol)

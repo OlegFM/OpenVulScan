@@ -17,9 +17,10 @@ public sealed class AstRuleDispatcher
         _compilation = compilation;
     }
 
-    public void Run(CancellationToken cancellationToken = default)
+    public IReadOnlyList<Diagnostic> Run(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var diagnostics = new List<Diagnostic>();
 
         foreach (var tree in _compilation.SyntaxTrees)
         {
@@ -40,7 +41,11 @@ public sealed class AstRuleDispatcher
                         rule.Visit(node, context);
                     }
                 }
+
+                diagnostics.AddRange(context.Diagnostics);
             }
         }
+
+        return diagnostics;
     }
 }

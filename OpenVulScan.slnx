@@ -1,8 +1,22 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/OpenVulScan.Cache/OpenVulScan.Cache.csproj" />
+    <Project Path="src/OpenVulScan.Cli/OpenVulScan.Cli.csproj" />
+    <Project Path="src/OpenVulScan.Configuration/OpenVulScan.Configuration.csproj" />
     <Project Path="src/OpenVulScan.Core/OpenVulScan.Core.csproj" />
+    <Project Path="src/OpenVulScan.Frontend/OpenVulScan.Frontend.csproj" />
+    <Project Path="src/OpenVulScan.RuleEngine/OpenVulScan.RuleEngine.csproj" />
+    <Project Path="src/OpenVulScan.Rules.Ast/OpenVulScan.Rules.Ast.csproj" />
+    <Project Path="src/OpenVulScan.Rules.DataFlow/OpenVulScan.Rules.DataFlow.csproj" />
+    <Project Path="src/OpenVulScan.Rules.PathSensitive/OpenVulScan.Rules.PathSensitive.csproj" />
+    <Project Path="src/OpenVulScan.Rules.Performance/OpenVulScan.Rules.Performance.csproj" />
+    <Project Path="src/OpenVulScan.Rules.Taint/OpenVulScan.Rules.Taint.csproj" />
+    <Project Path="src/OpenVulScan.Sarif/OpenVulScan.Sarif.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenVulScan.Core.Tests/OpenVulScan.Core.Tests.csproj" />
+    <Project Path="tests/OpenVulScan.CorpusBench/OpenVulScan.CorpusBench.csproj" />
+    <Project Path="tests/OpenVulScan.Integration.Tests/OpenVulScan.Integration.Tests.csproj" />
+    <Project Path="tests/OpenVulScan.Rules.Tests/OpenVulScan.Rules.Tests.csproj" />
   </Folder>
 </Solution>

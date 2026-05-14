@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>OpenVulScan.Rules.DataFlow</AssemblyName>
+    <RootNamespace>OpenVulScan</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+  </ItemGroup>
+</Project>

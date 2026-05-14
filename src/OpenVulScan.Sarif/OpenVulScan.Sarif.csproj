@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>OpenVulScan.Sarif</AssemblyName>
+    <RootNamespace>OpenVulScan</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+  </ItemGroup>
+</Project>

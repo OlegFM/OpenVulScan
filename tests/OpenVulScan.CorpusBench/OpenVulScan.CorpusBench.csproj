@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Frontend\OpenVulScan.Frontend.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Cache\OpenVulScan.Cache.csproj" />
+  </ItemGroup>
+</Project>

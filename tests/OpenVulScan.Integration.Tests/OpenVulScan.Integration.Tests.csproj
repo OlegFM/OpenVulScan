@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenVulScan.Cli\OpenVulScan.Cli.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Frontend\OpenVulScan.Frontend.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Sarif\OpenVulScan.Sarif.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Configuration\OpenVulScan.Configuration.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Cache\OpenVulScan.Cache.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+  </ItemGroup>
+</Project>

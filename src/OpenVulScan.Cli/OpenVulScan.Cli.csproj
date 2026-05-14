@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>OpenVulScan.Cli</AssemblyName>
+    <RootNamespace>OpenVulScan</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenVulScan.Frontend\OpenVulScan.Frontend.csproj" />
+    <ProjectReference Include="..\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Sarif\OpenVulScan.Sarif.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Configuration\OpenVulScan.Configuration.csproj" />
+    <ProjectReference Include="..\OpenVulScan.Cache\OpenVulScan.Cache.csproj" />
+  </ItemGroup>
+</Project>

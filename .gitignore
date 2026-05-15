@@ -402,6 +402,9 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
+# Worktrees
+.worktrees/
+
 # JetBrains Rider
 *.sln.iml
 .idea/

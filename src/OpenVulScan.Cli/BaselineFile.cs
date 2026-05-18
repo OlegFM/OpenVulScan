@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 
 namespace OpenVulScan;
@@ -99,8 +100,9 @@ internal static class BaselineFile
             return string.Empty;
         }
 
-        var lineContent = sourceText.Lines[line].ToString().Trim();
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(lineContent));
+        var lineContent = sourceText.Lines[line].ToString();
+        var normalized = Regex.Replace(lineContent, "\\s+", " ").Trim();
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
         return Convert.ToHexString(hash)[..8];
     }
 }

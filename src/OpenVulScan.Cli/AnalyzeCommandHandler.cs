@@ -21,12 +21,8 @@ internal sealed class AnalyzeCommandHandler
                 options.Path,
                 options.Include,
                 options.Exclude,
+                options.Suppress,
                 cancellationToken).ConfigureAwait(false);
-
-            if (!string.IsNullOrEmpty(options.Suppress))
-            {
-                await WriteWarningAsync(outputStream, "Suppress option is provided but suppression logic is not yet implemented.").ConfigureAwait(false);
-            }
 
             await WriteOutputAsync(filteredDiagnostics, registry.GetAll(), options.Format, outputStream, cancellationToken).ConfigureAwait(false);
 

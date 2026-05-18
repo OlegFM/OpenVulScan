@@ -6,10 +6,20 @@ namespace OpenVulScan;
 
 internal static class AnalysisRunner
 {
+    public static Task<(IReadOnlyList<Diagnostic> Diagnostics, RuleRegistry Registry)> RunAnalysisAsync(
+        string path,
+        IReadOnlyList<string>? includePatterns,
+        IReadOnlyList<string>? excludePatterns,
+        CancellationToken cancellationToken)
+    {
+        return RunAnalysisAsync(path, includePatterns, excludePatterns, null, cancellationToken);
+    }
+
     public static async Task<(IReadOnlyList<Diagnostic> Diagnostics, RuleRegistry Registry)> RunAnalysisAsync(
         string path,
         IReadOnlyList<string>? includePatterns,
         IReadOnlyList<string>? excludePatterns,
+        string? baselinePath,
         CancellationToken cancellationToken)
     {
         var loader = new ProjectLoader();
@@ -49,6 +59,13 @@ internal static class AnalysisRunner
         }
 
         var afterSuppressions = SuppressionFilter.Apply(allDiagnostics, allSuppressions);
+
+        if (!string.IsNullOrEmpty(baselinePath))
+        {
+            var baseline = BaselineFile.Read(baselinePath);
+            afterSuppressions = BaselineFilter.Apply(afterSuppressions, baseline);
+        }
+
         var filtered = ApplyFilters(afterSuppressions, includePatterns, excludePatterns);
         return (filtered, registry);
     }

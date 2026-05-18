@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: ComplexPlaceholders,
+  Source: class C { void M() { string.Format("{0:D} {1,5} {2}", 1, 2, 3); } }
+}

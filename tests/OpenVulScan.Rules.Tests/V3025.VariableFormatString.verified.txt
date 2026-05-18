@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: VariableFormatString,
+  Source: class C { void M(string fmt) { string.Format(fmt, "a"); } }
+}

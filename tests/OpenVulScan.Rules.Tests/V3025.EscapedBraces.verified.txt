@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: EscapedBraces,
+  Source: class C { void M() { string.Format("{{0}} {0}", "a"); } }
+}

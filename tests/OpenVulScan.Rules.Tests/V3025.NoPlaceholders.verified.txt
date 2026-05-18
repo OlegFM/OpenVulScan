@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: NoPlaceholders,
+  Source: class C { void M() { string.Format("hello", "a"); } },
+  Diagnostics: [
+    {
+      Id: V3025,
+      Message: The format string contains 0 placeholder(s) but 1 argument(s) were passed,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 36,
+        EndLine: 1,
+        EndColumn: 43
+      }
+    }
+  ]
+}

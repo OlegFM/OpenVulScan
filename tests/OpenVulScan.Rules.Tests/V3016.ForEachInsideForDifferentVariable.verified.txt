@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3016,
+  TestCase: ForEachInsideForDifferentVariable,
+  Source: class C { void M(int[] a) { for (int i = 0; i < 10; i++) foreach (var x in a) { } } }
+}

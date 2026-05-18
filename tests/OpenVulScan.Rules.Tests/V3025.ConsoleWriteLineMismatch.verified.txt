@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: ConsoleWriteLineMismatch,
+  Source: class C { void M() { System.Console.WriteLine("{0} {1} {2}", "a", "b"); } }
+}

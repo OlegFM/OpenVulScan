@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3016,
+  TestCase: ForEachInsideForSameVariable,
+  Source: class C { void M(int[] a) { for (int i = 0; i < 10; i++) foreach (var i in a) { } } },
+  Diagnostics: [
+    {
+      Id: V3016,
+      Message: The loop variable 'i' has the same name as a variable in an outer loop,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 71,
+        EndLine: 1,
+        EndColumn: 72
+      }
+    }
+  ]
+}

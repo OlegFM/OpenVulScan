@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: NonFormatMethod,
+  Source: class C { void M() { SomeMethod("{0} {1}", "a"); } void SomeMethod(string s, string a) { } }
+}

@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: CorrectCount,
+  Source: class C { void M() { string.Format("{0} {1}", "a", "b"); } }
+}

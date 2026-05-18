@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3025,
+  TestCase: NoArguments,
+  Source: class C { void M() { string.Format("hello"); } }
+}

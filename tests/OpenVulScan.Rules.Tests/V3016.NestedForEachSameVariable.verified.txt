@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3016,
+  TestCase: NestedForEachSameVariable,
+  Source: class C { void M(int[] a, int[] b) { foreach (var x in a) foreach (var x in b) { } } },
+  Diagnostics: [
+    {
+      Id: V3016,
+      Message: The loop variable 'x' has the same name as a variable in an outer loop,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 72,
+        EndLine: 1,
+        EndColumn: 73
+      }
+    }
+  ]
+}

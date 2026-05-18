@@ -1,0 +1,29 @@
+﻿{
+  RuleCode: V3013,
+  TestCase: NestedSwitchInnerMissingDefault,
+  Source:
+class C {
+    void M(int x, int y) {
+        switch (x) {
+            default:
+                switch (y) {
+                    case 1: break;
+                }
+                break;
+        }
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3013,
+      Message: The 'switch' statement does not have a 'default' label,
+      Severity: Warning,
+      Location: {
+        StartLine: 5,
+        StartColumn: 17,
+        EndLine: 5,
+        EndColumn: 23
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+﻿{
+  RuleCode: V3009,
+  TestCase: SameBoolReturn,
+  Source:
+class C {
+    bool M(bool x) {
+        if (x) return true;
+        return true;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3009,
+      Message: All branches of the method return the same value,
+      Severity: Warning,
+      Location: {
+        StartLine: 3,
+        StartColumn: 16,
+        EndLine: 3,
+        EndColumn: 28
+      }
+    }
+  ]
+}

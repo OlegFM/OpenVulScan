@@ -1,0 +1,10 @@
+﻿{
+  RuleCode: V3009,
+  TestCase: SingleReturn,
+  Source:
+class C {
+    int M() {
+        return 1;
+    }
+}
+}

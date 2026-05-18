@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3013,
+  TestCase: SwitchWithOnlyDefault,
+  Source:
+class C {
+    void M(int x) {
+        switch (x) {
+            default: break;
+        }
+    }
+}
+}

@@ -1,0 +1,24 @@
+﻿{
+  RuleCode: V3013,
+  TestCase: EmptySwitch,
+  Source:
+class C {
+    void M(int x) {
+        switch (x) {
+        }
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3013,
+      Message: The 'switch' statement does not have a 'default' label,
+      Severity: Warning,
+      Location: {
+        StartLine: 3,
+        StartColumn: 9,
+        EndLine: 3,
+        EndColumn: 15
+      }
+    }
+  ]
+}

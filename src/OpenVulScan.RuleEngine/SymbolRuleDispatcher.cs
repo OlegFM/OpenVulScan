@@ -86,7 +86,7 @@ public sealed class SymbolRuleDispatcher
     private SemanticModel? GetSemanticModel(ISymbol symbol)
     {
         var location = symbol.Locations.FirstOrDefault(l => l.SourceTree is not null);
-        if (location?.SourceTree is not null)
+        if (location?.SourceTree is not null && _compilation.ContainsSyntaxTree(location.SourceTree))
         {
             return _compilation.GetSemanticModel(location.SourceTree);
         }

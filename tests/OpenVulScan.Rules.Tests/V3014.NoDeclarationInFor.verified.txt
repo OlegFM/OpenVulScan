@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3014,
+  TestCase: NoDeclarationInFor,
+  Source:
+class C {
+    void M(int n) {
+        int i = 0;
+        for (; i < n; i++) {
+        }
+    }
+}
+}

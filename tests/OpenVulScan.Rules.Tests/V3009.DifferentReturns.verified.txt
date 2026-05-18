@@ -1,0 +1,11 @@
+﻿{
+  RuleCode: V3009,
+  TestCase: DifferentReturns,
+  Source:
+class C {
+    int M(bool x) {
+        if (x) return 1;
+        return 2;
+    }
+}
+}

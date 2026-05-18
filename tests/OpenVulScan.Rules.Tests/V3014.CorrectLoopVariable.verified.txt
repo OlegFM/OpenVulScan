@@ -1,0 +1,11 @@
+﻿{
+  RuleCode: V3014,
+  TestCase: CorrectLoopVariable,
+  Source:
+class C {
+    void M(int n) {
+        for (int i = 0; i < n; i++) {
+        }
+    }
+}
+}

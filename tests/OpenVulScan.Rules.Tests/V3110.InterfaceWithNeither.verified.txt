@@ -1,0 +1,8 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: InterfaceWithNeither,
+  Source:
+interface I
+{
+}
+}

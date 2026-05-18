@@ -1,0 +1,9 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: ClassWithEqualsOverloadedNotObject,
+  Source:
+class C
+{
+    public bool Equals(C other) => false;
+}
+}

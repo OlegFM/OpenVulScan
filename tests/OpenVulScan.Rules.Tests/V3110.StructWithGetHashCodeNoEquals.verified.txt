@@ -1,0 +1,22 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: StructWithGetHashCodeNoEquals,
+  Source:
+struct S
+{
+    public override int GetHashCode() => 0;
+},
+  Diagnostics: [
+    {
+      Id: V3110,
+      Message: Type 'S' overrides 'GetHashCode()' but does not override the corresponding 'Equals(object)',
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 8,
+        EndLine: 1,
+        EndColumn: 9
+      }
+    }
+  ]
+}

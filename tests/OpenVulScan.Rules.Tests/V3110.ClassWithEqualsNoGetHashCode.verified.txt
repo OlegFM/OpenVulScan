@@ -1,0 +1,22 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: ClassWithEqualsNoGetHashCode,
+  Source:
+class C
+{
+    public override bool Equals(object obj) => false;
+},
+  Diagnostics: [
+    {
+      Id: V3110,
+      Message: Type 'C' overrides 'Equals(object)' but does not override the corresponding 'GetHashCode()',
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 7,
+        EndLine: 1,
+        EndColumn: 8
+      }
+    }
+  ]
+}

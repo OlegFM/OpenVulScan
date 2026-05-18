@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: ConditionalAccessWithElementAccess,
+  Source: class C { void M() { var x = obj?.A[0]; } }
+}

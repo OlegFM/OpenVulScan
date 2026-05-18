@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: SimpleConditionalAccessFollowedByMemberAccess,
+  Source: class C { void M() { var x = obj?.A.B; } },
+  Diagnostics: [
+    {
+      Id: V3105,
+      Message: Potential NullReferenceException after null-conditional operator: member access 'B' may be called on null,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 37,
+        EndLine: 1,
+        EndColumn: 38
+      }
+    }
+  ]
+}

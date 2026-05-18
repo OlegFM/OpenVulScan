@@ -1,0 +1,9 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: ClassWithOnlyGetHashCodeOverload,
+  Source:
+class C
+{
+    public int GetHashCode(string s) => 0;
+}
+}

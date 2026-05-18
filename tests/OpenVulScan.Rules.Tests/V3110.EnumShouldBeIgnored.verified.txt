@@ -1,0 +1,9 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: EnumShouldBeIgnored,
+  Source:
+enum E
+{
+    A, B
+}
+}

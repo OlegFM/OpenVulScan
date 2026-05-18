@@ -1,0 +1,8 @@
+﻿{
+  RuleCode: V3110,
+  TestCase: ClassWithNeitherEqualsNorGetHashCode,
+  Source:
+class C
+{
+}
+}

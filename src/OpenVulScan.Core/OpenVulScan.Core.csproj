@@ -3,4 +3,8 @@
     <AssemblyName>OpenVulScan.Core</AssemblyName>
     <RootNamespace>OpenVulScan</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
 </Project>

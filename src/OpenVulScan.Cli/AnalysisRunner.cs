@@ -34,15 +34,22 @@ internal static class AnalysisRunner
         var registry = CreateRuleRegistry();
         var scheduler = new RuleScheduler(registry, _ => { });
         var allDiagnostics = new List<Diagnostic>();
+        var allSuppressions = new List<SuppressionRange>();
 
         foreach (var project in projects)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var diagnostics = await scheduler.AnalyzeAsync(project.Compilation, cancellationToken).ConfigureAwait(false);
             allDiagnostics.AddRange(diagnostics);
+
+            foreach (var tree in project.Compilation.SyntaxTrees)
+            {
+                allSuppressions.AddRange(InlineSuppressionParser.Parse(tree));
+            }
         }
 
-        var filtered = ApplyFilters(allDiagnostics, includePatterns, excludePatterns);
+        var afterSuppressions = SuppressionFilter.Apply(allDiagnostics, allSuppressions);
+        var filtered = ApplyFilters(afterSuppressions, includePatterns, excludePatterns);
         return (filtered, registry);
     }
 

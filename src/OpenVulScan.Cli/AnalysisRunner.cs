@@ -57,6 +57,7 @@ internal static class AnalysisRunner
             {
                 allSuppressions.AddRange(InlineSuppressionParser.Parse(tree));
             }
+            allSuppressions.AddRange(SuppressMessageAttributeParser.Parse(project.Compilation));
 
             allFails.AddRange(FailDetector.Detect(project));
         }

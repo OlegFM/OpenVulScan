@@ -1,5 +1,18 @@
 ﻿{
   RuleCode: V3005,
   TestCase: IndexerSelfAssignment,
-  Source: class C { void M(int[] arr, int i) { arr[i] = arr[i]; } }
+  Source: class C { void M(int[] arr, int i) { arr[i] = arr[i]; } },
+  Diagnostics: [
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 38,
+        EndLine: 1,
+        EndColumn: 53
+      }
+    }
+  ]
 }

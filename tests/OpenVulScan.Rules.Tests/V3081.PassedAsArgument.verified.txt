@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3081,
+  TestCase: PassedAsArgument,
+  Source: class C { void M() { Log(new System.ArgumentException("msg")); } void Log(System.Exception ex) { } }
+}

@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3081,
+  TestCase: AssignedToVariable,
+  Source: class C { void M() { var ex = new System.ArgumentException("msg"); } }
+}

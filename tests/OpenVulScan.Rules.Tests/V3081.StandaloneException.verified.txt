@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3081,
+  TestCase: StandaloneException,
+  Source: class C { void M() { new System.Exception("msg"); } },
+  Diagnostics: [
+    {
+      Id: V3081,
+      Message: An exception object is created but not thrown,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 22,
+        EndLine: 1,
+        EndColumn: 49
+      }
+    }
+  ]
+}

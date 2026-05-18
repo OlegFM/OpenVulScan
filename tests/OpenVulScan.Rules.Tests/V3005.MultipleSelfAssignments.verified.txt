@@ -1,5 +1,29 @@
 ﻿{
   RuleCode: V3005,
   TestCase: MultipleSelfAssignments,
-  Source: class C { void M() { int a = 1, b = 2; a = a; b = b; } }
+  Source: class C { void M() { int a = 1, b = 2; a = a; b = b; } },
+  Diagnostics: [
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 40,
+        EndLine: 1,
+        EndColumn: 45
+      }
+    },
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 47,
+        EndLine: 1,
+        EndColumn: 52
+      }
+    }
+  ]
 }

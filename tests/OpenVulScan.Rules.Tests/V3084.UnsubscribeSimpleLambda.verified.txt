@@ -1,0 +1,24 @@
+﻿{
+  RuleCode: V3084,
+  TestCase: UnsubscribeSimpleLambda,
+  Source:
+using System;
+class C
+{
+    event Action<int>? MyEvent;
+    void M() { MyEvent -= x => { }; }
+},
+  Diagnostics: [
+    {
+      Id: V3084,
+      Message: Unsubscription from an event with an anonymous method or lambda will not work because a new delegate instance is created each time,
+      Severity: Warning,
+      Location: {
+        StartLine: 6,
+        StartColumn: 27,
+        EndLine: 6,
+        EndColumn: 35
+      }
+    }
+  ]
+}

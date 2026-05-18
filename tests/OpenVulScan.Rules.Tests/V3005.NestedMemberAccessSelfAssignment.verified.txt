@@ -1,5 +1,18 @@
 ﻿{
   RuleCode: V3005,
   TestCase: NestedMemberAccessSelfAssignment,
-  Source: class C { object obj; void M() { ((C)obj).obj = ((C)obj).obj; } }
+  Source: class C { object obj; void M() { ((C)obj).obj = ((C)obj).obj; } },
+  Diagnostics: [
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 34,
+        EndLine: 1,
+        EndColumn: 61
+      }
+    }
+  ]
 }

@@ -51,6 +51,23 @@ public abstract class AstRule
         SyntaxKind.UnsignedRightShiftExpression,
     ];
 
+    private static readonly SyntaxKind[] s_assignmentExpressionKinds =
+    [
+        SyntaxKind.SimpleAssignmentExpression,
+        SyntaxKind.AddAssignmentExpression,
+        SyntaxKind.SubtractAssignmentExpression,
+        SyntaxKind.MultiplyAssignmentExpression,
+        SyntaxKind.DivideAssignmentExpression,
+        SyntaxKind.ModuloAssignmentExpression,
+        SyntaxKind.AndAssignmentExpression,
+        SyntaxKind.ExclusiveOrAssignmentExpression,
+        SyntaxKind.OrAssignmentExpression,
+        SyntaxKind.LeftShiftAssignmentExpression,
+        SyntaxKind.RightShiftAssignmentExpression,
+        SyntaxKind.UnsignedRightShiftAssignmentExpression,
+        SyntaxKind.CoalesceAssignmentExpression,
+    ];
+
     private static Dictionary<SyntaxKind, MethodInfo> BuildKindMap(Type type)
     {
         var map = new Dictionary<SyntaxKind, MethodInfo>();
@@ -79,6 +96,16 @@ public abstract class AstRule
             if (kindName == "BinaryExpression")
             {
                 foreach (var kind in s_binaryExpressionKinds)
+                {
+                    map[kind] = method;
+                }
+
+                continue;
+            }
+
+            if (kindName == "AssignmentExpression")
+            {
+                foreach (var kind in s_assignmentExpressionKinds)
                 {
                     map[kind] = method;
                 }

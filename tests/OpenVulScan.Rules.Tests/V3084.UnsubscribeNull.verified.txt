@@ -1,0 +1,11 @@
+﻿{
+  RuleCode: V3084,
+  TestCase: UnsubscribeNull,
+  Source:
+using System;
+class C
+{
+    event EventHandler? MyEvent;
+    void M() { MyEvent -= null; }
+}
+}

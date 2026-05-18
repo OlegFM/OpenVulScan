@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3084,
+  TestCase: NumericSubtractAssign,
+  Source: class C { void M() { int x = 5; x -= 1; } }
+}

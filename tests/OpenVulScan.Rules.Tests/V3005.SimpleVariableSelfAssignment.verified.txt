@@ -1,5 +1,18 @@
 ﻿{
   RuleCode: V3005,
   TestCase: SimpleVariableSelfAssignment,
-  Source: class C { void M() { int x = 1; x = x; } }
+  Source: class C { void M() { int x = 1; x = x; } },
+  Diagnostics: [
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 33,
+        EndLine: 1,
+        EndColumn: 38
+      }
+    }
+  ]
 }

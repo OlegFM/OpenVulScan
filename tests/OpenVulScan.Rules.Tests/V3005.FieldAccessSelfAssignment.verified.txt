@@ -1,5 +1,18 @@
 ﻿{
   RuleCode: V3005,
   TestCase: FieldAccessSelfAssignment,
-  Source: class C { int x; void M() { this.x = this.x; } }
+  Source: class C { int x; void M() { this.x = this.x; } },
+  Diagnostics: [
+    {
+      Id: V3005,
+      Message: The variable is assigned to itself,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 29,
+        EndLine: 1,
+        EndColumn: 44
+      }
+    }
+  ]
 }

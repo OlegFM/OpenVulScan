@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3081,
+  TestCase: NonExceptionObjectCreation,
+  Source: class C { void M() { new System.Object(); } }
+}

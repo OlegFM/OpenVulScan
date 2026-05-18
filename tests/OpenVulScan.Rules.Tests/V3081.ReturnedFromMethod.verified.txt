@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3081,
+  TestCase: ReturnedFromMethod,
+  Source: class C { System.Exception M() { return new System.ArgumentException("msg"); } }
+}

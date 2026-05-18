@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3084,
+  TestCase: UnsubscribeNamedHandler,
+  Source:
+using System;
+class C
+{
+    event EventHandler? MyEvent;
+    void Handler(object? s, EventArgs e) { }
+    void M() { MyEvent -= Handler; }
+}
+}

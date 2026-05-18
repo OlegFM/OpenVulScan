@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: EmptyLockStatement,
+  Source: class C { void M() { object obj = new object(); lock (obj); } },
+  Diagnostics: [
+    {
+      Id: V3007,
+      Message: A semicolon is probably missing after the 'lock' statement,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 59,
+        EndLine: 1,
+        EndColumn: 60
+      }
+    }
+  ]
+}

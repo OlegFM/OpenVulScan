@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: IfWithStatement,
+  Source: class C { void M() { int x = 0; if (true) x = 1; } }
+}

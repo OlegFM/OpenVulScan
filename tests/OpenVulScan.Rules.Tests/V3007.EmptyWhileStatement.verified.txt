@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: EmptyWhileStatement,
+  Source: class C { void M() { while (true); } },
+  Diagnostics: [
+    {
+      Id: V3007,
+      Message: A semicolon is probably missing after the 'while' statement,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 34,
+        EndLine: 1,
+        EndColumn: 35
+      }
+    }
+  ]
+}

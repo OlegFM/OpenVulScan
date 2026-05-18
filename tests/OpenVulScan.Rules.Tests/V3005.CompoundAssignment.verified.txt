@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: CompoundAssignment,
+  Source: class C { void M() { int x = 1; x += 1; } }
+}

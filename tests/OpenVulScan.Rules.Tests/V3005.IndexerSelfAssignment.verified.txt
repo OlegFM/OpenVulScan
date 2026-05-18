@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: IndexerSelfAssignment,
+  Source: class C { void M(int[] arr, int i) { arr[i] = arr[i]; } }
+}

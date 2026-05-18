@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: WhileWithStatement,
+  Source: class C { void M() { while (true) break; } }
+}

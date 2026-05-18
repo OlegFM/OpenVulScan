@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: NestedMemberAccessSelfAssignment,
+  Source: class C { object obj; void M() { ((C)obj).obj = ((C)obj).obj; } }
+}

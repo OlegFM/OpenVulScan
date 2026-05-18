@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: DifferentIndexers,
+  Source: class C { void M(int[] arr, int i, int j) { arr[i] = arr[j]; } }
+}

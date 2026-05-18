@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: EmptyDoWhileStatement,
+  Source: class C { void M() { do; while (true); } },
+  Diagnostics: [
+    {
+      Id: V3007,
+      Message: A semicolon is probably missing after the 'do' statement,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 24,
+        EndLine: 1,
+        EndColumn: 25
+      }
+    }
+  ]
+}

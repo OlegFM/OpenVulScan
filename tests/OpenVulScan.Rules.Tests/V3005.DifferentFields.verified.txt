@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: DifferentFields,
+  Source: class C { int x, y; void M() { this.x = this.y; } }
+}

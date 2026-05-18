@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: DoWhileWithBlock,
+  Source: class C { void M() { do { } while (true); } }
+}

@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3005,
+  TestCase: DifferentVariables,
+  Source: class C { void M() { int x = 1, y = 2; x = y; } }
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3007,
+  TestCase: EmptyForStatement,
+  Source: class C { void M() { for (;;); } },
+  Diagnostics: [
+    {
+      Id: V3007,
+      Message: A semicolon is probably missing after the 'for' statement,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 30,
+        EndLine: 1,
+        EndColumn: 31
+      }
+    }
+  ]
+}

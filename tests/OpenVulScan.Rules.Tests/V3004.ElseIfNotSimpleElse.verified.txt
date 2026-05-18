@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3004,
+  TestCase: ElseIfNotSimpleElse,
+  Source: class C { void M() { int x; bool a = true, b = false; if (a) { x = 1; } else if (b) { x = 1; } } }
+}

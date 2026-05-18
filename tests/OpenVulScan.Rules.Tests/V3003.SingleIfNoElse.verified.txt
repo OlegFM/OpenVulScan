@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3003,
+  TestCase: SingleIfNoElse,
+  Source: class C { void M() { int a = 1; if (a == 1) { } } }
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3003,
+  TestCase: IfElseIfSameConditionWithMethodCall,
+  Source: class C { bool F() => true; void M() { if (F()) { } else if (F()) { } } },
+  Diagnostics: [
+    {
+      Id: V3003,
+      Message: The conditional expressions of the 'if' and 'else if' operators are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 62,
+        EndLine: 1,
+        EndColumn: 65
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3004,
+  TestCase: IdenticalBlocksWithMultipleStatements,
+  Source: class C { void M() { int x, y; bool a = true; if (a) { x = 1; y = 2; } else { x = 1; y = 2; } } },
+  Diagnostics: [
+    {
+      Id: V3004,
+      Message: The 'then' and 'else' branches of the conditional operator are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 47,
+        EndLine: 1,
+        EndColumn: 49
+      }
+    }
+  ]
+}

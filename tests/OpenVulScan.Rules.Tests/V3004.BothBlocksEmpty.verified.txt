@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3004,
+  TestCase: BothBlocksEmpty,
+  Source: class C { void M() { bool a = true; if (a) { } else { } } }
+}

@@ -1,0 +1,29 @@
+﻿{
+  RuleCode: V3003,
+  TestCase: MultipleIdenticalConditions,
+  Source: class C { void M() { int a = 1; if (a > 0) { } else if (a > 0) { } else if (a > 0) { } } },
+  Diagnostics: [
+    {
+      Id: V3003,
+      Message: The conditional expressions of the 'if' and 'else if' operators are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 57,
+        EndLine: 1,
+        EndColumn: 62
+      }
+    },
+    {
+      Id: V3003,
+      Message: The conditional expressions of the 'if' and 'else if' operators are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 77,
+        EndLine: 1,
+        EndColumn: 82
+      }
+    }
+  ]
+}

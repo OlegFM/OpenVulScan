@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3004,
+  TestCase: IdenticalBlockWithVariableDecl,
+  Source: class C { void M() { bool a = true; if (a) { int x = 1; } else { int x = 1; } } },
+  Diagnostics: [
+    {
+      Id: V3004,
+      Message: The 'then' and 'else' branches of the conditional operator are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 37,
+        EndLine: 1,
+        EndColumn: 39
+      }
+    }
+  ]
+}

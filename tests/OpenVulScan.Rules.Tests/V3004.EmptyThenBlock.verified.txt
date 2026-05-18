@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3004,
+  TestCase: EmptyThenBlock,
+  Source: class C { void M() { int x; bool a = true; if (a) { } else { x = 1; } } }
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3003,
+  TestCase: IfElseIfElseIfSameCondition,
+  Source: class C { void M() { int a = 1, b = 2, c = 3, d = 4; if (a == b) { } else if (c == d) { } else if (a == b) { } } },
+  Diagnostics: [
+    {
+      Id: V3003,
+      Message: The conditional expressions of the 'if' and 'else if' operators are identical,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 100,
+        EndLine: 1,
+        EndColumn: 106
+      }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3037,
+  TestCase: SwapWithTemp,
+  Source: class C { void M() { int a = 1, b = 2, t; t = a; a = b; b = t; } }
+}

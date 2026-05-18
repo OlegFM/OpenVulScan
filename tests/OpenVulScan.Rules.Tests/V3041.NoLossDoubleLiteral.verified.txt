@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3041,
+  TestCase: NoLossDoubleLiteral,
+  Source: class C { void M() { double d = 1.0; } }
+}

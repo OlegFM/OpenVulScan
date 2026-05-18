@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3037,
+  TestCase: NotASwap,
+  Source: class C { void M() { int a = 1, b = 2, c = 3; a = b; b = c; } }
+}

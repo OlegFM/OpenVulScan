@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3038,
+  TestCase: SingleArgument,
+  Source: class C { void M(int a) { F(a); } void F(int x) { } }
+}

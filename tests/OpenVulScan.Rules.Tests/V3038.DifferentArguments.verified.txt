@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3038,
+  TestCase: DifferentArguments,
+  Source: class C { void M(int a, int b) { F(a, b); } void F(int x, int y) { } }
+}

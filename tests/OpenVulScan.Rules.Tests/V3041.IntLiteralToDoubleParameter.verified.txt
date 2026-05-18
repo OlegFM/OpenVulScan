@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3041,
+  TestCase: IntLiteralToDoubleParameter,
+  Source: class C { void M() { F(123); } void F(double x) { } },
+  Diagnostics: [
+    {
+      Id: V3041,
+      Message: Implicit conversion from integer type to floating-point type may cause precision loss,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 24,
+        EndLine: 1,
+        EndColumn: 27
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3038,
+  TestCase: SameLiteralTwice,
+  Source: class C { void M() { F(1, 1); } void F(int x, int y) { } },
+  Diagnostics: [
+    {
+      Id: V3038,
+      Message: The same argument is passed to multiple parameters of the method,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 27,
+        EndLine: 1,
+        EndColumn: 28
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3038,
+  TestCase: SameVariableThreeTimes,
+  Source: class C { void M(int a) { F(a, a, a); } void F(int x, int y, int z) { } },
+  Diagnostics: [
+    {
+      Id: V3038,
+      Message: The same argument is passed to multiple parameters of the method,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 32,
+        EndLine: 1,
+        EndColumn: 33
+      }
+    }
+  ]
+}

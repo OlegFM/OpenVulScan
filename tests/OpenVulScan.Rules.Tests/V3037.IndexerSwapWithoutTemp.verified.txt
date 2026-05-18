@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3037,
+  TestCase: IndexerSwapWithoutTemp,
+  Source: class C { void M(int[] arr) { arr[0] = arr[1]; arr[1] = arr[0]; } },
+  Diagnostics: [
+    {
+      Id: V3037,
+      Message: This assignment does not swap values; consider using a temporary variable,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 48,
+        EndLine: 1,
+        EndColumn: 63
+      }
+    }
+  ]
+}

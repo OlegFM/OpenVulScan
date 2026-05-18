@@ -6,7 +6,7 @@ namespace OpenVulScan;
 
 internal static class AnalysisRunner
 {
-    public static Task<(IReadOnlyList<Diagnostic> Diagnostics, RuleRegistry Registry)> RunAnalysisAsync(
+    public static Task<(IReadOnlyList<Diagnostic> Diagnostics, IReadOnlyList<AnalysisFail> Fails, RuleRegistry Registry)> RunAnalysisAsync(
         string path,
         IReadOnlyList<string>? includePatterns,
         IReadOnlyList<string>? excludePatterns,
@@ -15,7 +15,7 @@ internal static class AnalysisRunner
         return RunAnalysisAsync(path, includePatterns, excludePatterns, null, cancellationToken);
     }
 
-    public static async Task<(IReadOnlyList<Diagnostic> Diagnostics, RuleRegistry Registry)> RunAnalysisAsync(
+    public static async Task<(IReadOnlyList<Diagnostic> Diagnostics, IReadOnlyList<AnalysisFail> Fails, RuleRegistry Registry)> RunAnalysisAsync(
         string path,
         IReadOnlyList<string>? includePatterns,
         IReadOnlyList<string>? excludePatterns,
@@ -45,6 +45,7 @@ internal static class AnalysisRunner
         var scheduler = new RuleScheduler(registry, _ => { });
         var allDiagnostics = new List<Diagnostic>();
         var allSuppressions = new List<SuppressionRange>();
+        var allFails = new List<AnalysisFail>();
 
         foreach (var project in projects)
         {
@@ -56,6 +57,8 @@ internal static class AnalysisRunner
             {
                 allSuppressions.AddRange(InlineSuppressionParser.Parse(tree));
             }
+
+            allFails.AddRange(FailDetector.Detect(project));
         }
 
         var afterSuppressions = SuppressionFilter.Apply(allDiagnostics, allSuppressions);
@@ -67,7 +70,7 @@ internal static class AnalysisRunner
         }
 
         var filtered = ApplyFilters(afterSuppressions, includePatterns, excludePatterns);
-        return (filtered, registry);
+        return (filtered, allFails, registry);
     }
 
     private static RuleRegistry CreateRuleRegistry()

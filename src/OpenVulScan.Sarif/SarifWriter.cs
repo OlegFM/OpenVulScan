@@ -1,5 +1,6 @@
 namespace OpenVulScan;
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -25,8 +26,45 @@ public sealed class SarifWriter
         _toolVersion = toolVersion;
     }
 
-    public void Write(IReadOnlyList<Diagnostic> diagnostics, IReadOnlyList<RuleDescriptor> rules, Stream output)
+    public void Write(IReadOnlyList<Diagnostic> diagnostics, IReadOnlyList<AnalysisFail> fails, IReadOnlyList<RuleDescriptor> rules, Stream output)
     {
+        ArgumentNullException.ThrowIfNull(fails);
+
+        var results = diagnostics.Select(d => new SarifResult(
+            RuleId: d.Id,
+            Level: MapSeverity(d.Severity),
+            Message: new SarifMessage(d.GetMessage(CultureInfo.InvariantCulture)),
+            Locations: d.Location.IsInSource
+                ? new List<SarifLocation>
+                {
+                    new SarifLocation(
+                        PhysicalLocation: MapLocation(d.Location))
+                }
+                : null))
+            .ToList();
+
+        foreach (var fail in fails)
+        {
+            results.Add(new SarifResult(
+                RuleId: fail.Code,
+                Level: "error",
+                Message: new SarifMessage(fail.Message),
+                Locations: fail.FilePath != null
+                    ? new List<SarifLocation>
+                    {
+                        new SarifLocation(
+                            PhysicalLocation: new SarifPhysicalLocation(
+                                ArtifactLocation: new SarifArtifactLocation(
+                                    Uri: fail.FilePath),
+                                Region: new SarifRegion(
+                                    StartLine: fail.Line ?? 1,
+                                    StartColumn: 1,
+                                    EndLine: fail.Line ?? 1,
+                                    EndColumn: 1)))
+                    }
+                    : null));
+        }
+
         var log = new SarifLog(
             Schema: "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             Version: "2.1.0",
@@ -48,18 +86,7 @@ public sealed class SarifWriter
                                         { "category", r.Category.ToString() }
                                     }))
                                 .ToList())),
-                    Results: diagnostics.Select(d => new SarifResult(
-                        RuleId: d.Id,
-                        Level: MapSeverity(d.Severity),
-                        Message: new SarifMessage(d.GetMessage(CultureInfo.InvariantCulture)),
-                        Locations: d.Location.IsInSource
-                            ? new List<SarifLocation>
-                            {
-                                new SarifLocation(
-                                    PhysicalLocation: MapLocation(d.Location))
-                            }
-                            : null))
-                        .ToList())
+                    Results: results)
             });
 
         JsonSerializer.Serialize(output, log, s_options);

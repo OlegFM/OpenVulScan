@@ -45,7 +45,7 @@ public class ProjectLoader
         }
 
         var diagnostics = compilation.GetDiagnostics(ct).ToList();
-        var loadedProject = new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics);
+        var loadedProject = new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics);
 
         ThrowIfUnrecoverable(workspaceDiagnostics, path);
 
@@ -82,7 +82,7 @@ public class ProjectLoader
             }
 
             var diagnostics = compilation.GetDiagnostics(ct).ToList();
-            loadedProjects.Add(new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics));
+            loadedProjects.Add(new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics));
         }
 
         ThrowIfUnrecoverable(workspaceDiagnostics, path);
@@ -126,12 +126,8 @@ public class ProjectLoader
                     throw new MissingSdkException($"Missing SDK when loading '{path}': {message}");
                 }
 
-                if (IsMissingReferenceMessage(message))
-                {
-                    throw new MissingReferenceException($"Missing reference when loading '{path}': {message}");
-                }
-
-                throw new ProjectLoadException($"Workspace failure when loading '{path}': {message}");
+                // Missing references and other workspace failures are captured as fails (V051/V052)
+                // instead of throwing, so analysis can continue where possible.
             }
         }
     }

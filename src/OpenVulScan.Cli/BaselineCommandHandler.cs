@@ -11,7 +11,7 @@ internal sealed class BaselineCommandHandler
     {
         try
         {
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
             var baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path)) ?? Directory.GetCurrentDirectory();
             var entries = diagnostics.Select(d => ToBaselineEntry(d, baseDirectory)).ToList();
             var targetPath = string.IsNullOrEmpty(outputPath) ? "openvulscan.suppress" : outputPath;
@@ -46,7 +46,7 @@ internal sealed class BaselineCommandHandler
         {
             var targetPath = string.IsNullOrEmpty(baselinePath) ? "openvulscan.suppress" : baselinePath;
             var existing = BaselineFile.Read(targetPath);
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
             var baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path)) ?? Directory.GetCurrentDirectory();
             var current = diagnostics.Select(d => ToBaselineEntry(d, baseDirectory)).ToList();
 
@@ -84,7 +84,7 @@ internal sealed class BaselineCommandHandler
         {
             var targetPath = string.IsNullOrEmpty(baselinePath) ? "openvulscan.suppress" : baselinePath;
             var existing = BaselineFile.Read(targetPath);
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(path, null, null, cancellationToken).ConfigureAwait(false);
             var baseDirectory = Path.GetDirectoryName(Path.GetFullPath(path)) ?? Directory.GetCurrentDirectory();
             var current = diagnostics.Select(d => ToBaselineEntry(d, baseDirectory)).ToList();
 

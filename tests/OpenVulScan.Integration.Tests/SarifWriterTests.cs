@@ -45,7 +45,7 @@ public class SarifWriterTests
         using var stream = new MemoryStream();
 
         // Act
-        writer.Write(diagnostics, rules, stream);
+        writer.Write(diagnostics, new List<AnalysisFail>(), rules, stream);
 
         // Assert
         stream.Position = 0;

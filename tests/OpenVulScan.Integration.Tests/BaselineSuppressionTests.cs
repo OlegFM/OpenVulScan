@@ -232,7 +232,7 @@ public class BaselineSuppressionTests
                 "}\n");
 
             // Run analysis with baseline
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(
                 projectPath, null, null, baselinePath, CancellationToken.None);
 
             // The V3001 diagnostic should be suppressed by baseline even after moving 3 lines

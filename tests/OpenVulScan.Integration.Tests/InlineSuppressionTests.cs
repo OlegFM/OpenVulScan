@@ -31,7 +31,7 @@ public class InlineSuppressionTests
 
         try
         {
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
             Assert.DoesNotContain(diagnostics, d => d.Id == "V3001");
         }
         finally
@@ -67,7 +67,7 @@ public class InlineSuppressionTests
 
         try
         {
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
             Assert.DoesNotContain(diagnostics, d => d.Id == "V3001");
         }
         finally
@@ -101,7 +101,7 @@ public class InlineSuppressionTests
 
         try
         {
-            var (diagnostics, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
+            var (diagnostics, _, _) = await AnalysisRunner.RunAnalysisAsync(projectPath, null, null, CancellationToken.None);
             Assert.Contains(diagnostics, d => d.Id == "V3001");
         }
         finally

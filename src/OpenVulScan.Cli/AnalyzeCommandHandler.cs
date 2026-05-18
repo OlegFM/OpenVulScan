@@ -17,17 +17,18 @@ internal sealed class AnalyzeCommandHandler
     {
         try
         {
-            var (filteredDiagnostics, registry) = await AnalysisRunner.RunAnalysisAsync(
+            var (filteredDiagnostics, fails, registry) = await AnalysisRunner.RunAnalysisAsync(
                 options.Path,
                 options.Include,
                 options.Exclude,
                 options.Suppress,
                 cancellationToken).ConfigureAwait(false);
 
-            await WriteOutputAsync(filteredDiagnostics, registry.GetAll(), options.Format, outputStream, cancellationToken).ConfigureAwait(false);
+            await WriteOutputAsync(filteredDiagnostics, fails, registry.GetAll(), options.Format, outputStream, cancellationToken).ConfigureAwait(false);
 
             var hasErrors = filteredDiagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
-            return hasErrors ? 1 : 0;
+            var hasFails = fails.Count > 0;
+            return hasErrors || hasFails ? 1 : 0;
         }
         catch (MissingSdkException ex)
         {
@@ -59,6 +60,7 @@ internal sealed class AnalyzeCommandHandler
 
     private static async Task WriteOutputAsync(
         IReadOnlyList<Diagnostic> diagnostics,
+        IReadOnlyList<AnalysisFail> fails,
         IReadOnlyList<RuleDescriptor> rules,
         string format,
         Stream outputStream,
@@ -66,15 +68,15 @@ internal sealed class AnalyzeCommandHandler
     {
         if (string.Equals(format, "sarif", StringComparison.OrdinalIgnoreCase))
         {
-            WriteSarif(diagnostics, rules, outputStream);
+            WriteSarif(diagnostics, fails, rules, outputStream);
         }
         else if (string.Equals(format, "json", StringComparison.OrdinalIgnoreCase))
         {
-            await WriteJsonAsync(diagnostics, rules, outputStream, cancellationToken).ConfigureAwait(false);
+            await WriteJsonAsync(diagnostics, fails, rules, outputStream, cancellationToken).ConfigureAwait(false);
         }
         else if (string.Equals(format, "text", StringComparison.OrdinalIgnoreCase))
         {
-            await WriteTextAsync(diagnostics, outputStream, cancellationToken).ConfigureAwait(false);
+            await WriteTextAsync(diagnostics, fails, outputStream, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -84,17 +86,19 @@ internal sealed class AnalyzeCommandHandler
 
     private static void WriteSarif(
         IReadOnlyList<Diagnostic> diagnostics,
+        IReadOnlyList<AnalysisFail> fails,
         IReadOnlyList<RuleDescriptor> rules,
         Stream outputStream)
     {
         var writer = new SarifWriter(
             "OpenVulScan",
             typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0");
-        writer.Write(diagnostics, rules, outputStream);
+        writer.Write(diagnostics, fails, rules, outputStream);
     }
 
     private static async Task WriteJsonAsync(
         IReadOnlyList<Diagnostic> diagnostics,
+        IReadOnlyList<AnalysisFail> fails,
         IReadOnlyList<RuleDescriptor> rules,
         Stream outputStream,
         CancellationToken cancellationToken)
@@ -114,10 +118,19 @@ internal sealed class AnalyzeCommandHandler
                 : null,
         }).ToList();
 
+        var jsonFails = fails.Select(f => new
+        {
+            f.Code,
+            f.Message,
+            f.FilePath,
+            f.Line,
+        }).ToList();
+
         var output = new
         {
             Rules = rules,
             Diagnostics = jsonDiagnostics,
+            Fails = jsonFails,
         };
 
         await JsonSerializer.SerializeAsync(outputStream, output, s_jsonOptions, cancellationToken).ConfigureAwait(false);
@@ -125,6 +138,7 @@ internal sealed class AnalyzeCommandHandler
 
     private static async Task WriteTextAsync(
         IReadOnlyList<Diagnostic> diagnostics,
+        IReadOnlyList<AnalysisFail> fails,
         Stream outputStream,
         CancellationToken cancellationToken)
     {
@@ -146,6 +160,29 @@ internal sealed class AnalyzeCommandHandler
             {
                 await writer.WriteLineAsync(
                     $"[{severity}] {diagnostic.Id}: {message}")
+                    .ConfigureAwait(false);
+            }
+        }
+
+        foreach (var fail in fails)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (fail.FilePath != null && fail.Line.HasValue)
+            {
+                await writer.WriteLineAsync(
+                    $"{fail.FilePath}({fail.Line.Value},1): [FAIL] {fail.Code}: {fail.Message}")
+                    .ConfigureAwait(false);
+            }
+            else if (fail.FilePath != null)
+            {
+                await writer.WriteLineAsync(
+                    $"{fail.FilePath}: [FAIL] {fail.Code}: {fail.Message}")
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                await writer.WriteLineAsync(
+                    $"[FAIL] {fail.Code}: {fail.Message}")
                     .ConfigureAwait(false);
             }
         }

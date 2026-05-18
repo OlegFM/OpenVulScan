@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OpenVulScan.Core\OpenVulScan.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpenVulScan.Integration.Tests" />
+  </ItemGroup>
 </Project>

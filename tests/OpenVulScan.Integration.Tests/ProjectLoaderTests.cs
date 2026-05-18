@@ -62,7 +62,7 @@ public class ProjectLoaderTests
     }
 
     [Fact]
-    public async Task LoadProjectAsyncMissingSdkThrowsMissingSdkException()
+    public async Task LoadProjectAsyncMissingSdkThrowsProjectLoadExceptionWhenNoFallback()
     {
         var loader = new ProjectLoader();
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
@@ -74,9 +74,10 @@ public class ProjectLoaderTests
 
         try
         {
-            var ex = await Assert.ThrowsAsync<MissingSdkException>(
+            var ex = await Assert.ThrowsAsync<ProjectLoadException>(
                 () => loader.LoadProjectAsync(projectPath, CancellationToken.None));
-            Assert.Contains("SDK", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("no compile_commands.json fallback", ex.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.IsType<MissingSdkException>(ex.InnerException);
         }
         finally
         {

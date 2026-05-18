@@ -35,21 +35,43 @@ public class ProjectLoader
             workspaceDiagnostics.Add(e.Diagnostic);
         });
 
-        var project = await workspace.OpenProjectAsync(path, cancellationToken: ct).ConfigureAwait(false);
-        ct.ThrowIfCancellationRequested();
-
-        var compilation = await project.GetCompilationAsync(ct).ConfigureAwait(false);
-        if (compilation is null)
+        try
         {
-            throw new ProjectLoadException($"Failed to get compilation for project: {path}");
+            var project = await workspace.OpenProjectAsync(path, cancellationToken: ct).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+
+            var compilation = await project.GetCompilationAsync(ct).ConfigureAwait(false);
+            if (compilation is null)
+            {
+                throw new ProjectLoadException($"Failed to get compilation for project: {path}");
+            }
+
+            var diagnostics = compilation.GetDiagnostics(ct).ToList();
+            var loadedProject = new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics);
+
+            if (HasMissingSdk(workspaceDiagnostics))
+            {
+                var fallbackResult = await TryFallbackAsync(path, ct).ConfigureAwait(false);
+                if (fallbackResult is not null)
+                {
+                    return fallbackResult;
+                }
+            }
+
+            ThrowIfUnrecoverable(workspaceDiagnostics, path);
+
+            return loadedProject;
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var fallbackResult = await TryFallbackAsync(path, ct).ConfigureAwait(false);
+            if (fallbackResult is not null)
+            {
+                return fallbackResult;
+            }
 
-        var diagnostics = compilation.GetDiagnostics(ct).ToList();
-        var loadedProject = new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics);
-
-        ThrowIfUnrecoverable(workspaceDiagnostics, path);
-
-        return loadedProject;
+            throw new ProjectLoadException($"Failed to load project '{path}' via MSBuild and no compile_commands.json fallback was available.", ex);
+        }
     }
 
     public async Task<LoadedSolution> LoadSolutionAsync(string path, CancellationToken ct)
@@ -75,14 +97,33 @@ public class ProjectLoader
         foreach (var project in solution.Projects)
         {
             ct.ThrowIfCancellationRequested();
-            var compilation = await project.GetCompilationAsync(ct).ConfigureAwait(false);
-            if (compilation is null)
+            LoadedProject? loadedProject = null;
+
+            try
             {
-                throw new ProjectLoadException($"Failed to get compilation for project: {project.Name}");
+                var compilation = await project.GetCompilationAsync(ct).ConfigureAwait(false);
+                if (compilation is null)
+                {
+                    throw new ProjectLoadException($"Failed to get compilation for project: {project.Name}");
+                }
+
+                var diagnostics = compilation.GetDiagnostics(ct).ToList();
+                loadedProject = new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (project.FilePath is not null)
+                {
+                    loadedProject = await TryFallbackAsync(project.FilePath, ct).ConfigureAwait(false);
+                }
+
+                if (loadedProject is null)
+                {
+                    throw new ProjectLoadException($"Failed to load project '{project.Name}' in solution '{path}' and no fallback was available.", ex);
+                }
             }
 
-            var diagnostics = compilation.GetDiagnostics(ct).ToList();
-            loadedProjects.Add(new LoadedProject(project.Name, project.FilePath!, compilation, diagnostics, workspaceDiagnostics));
+            loadedProjects.Add(loadedProject);
         }
 
         ThrowIfUnrecoverable(workspaceDiagnostics, path);
@@ -132,6 +173,20 @@ public class ProjectLoader
         }
     }
 
+    private static bool HasMissingSdk(List<WorkspaceDiagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            if (diagnostic.Kind == WorkspaceDiagnosticKind.Failure &&
+                IsMissingSdkMessage(diagnostic.Message))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool IsMissingSdkMessage(string message)
     {
         if (!message.Contains("SDK", StringComparison.OrdinalIgnoreCase))
@@ -156,5 +211,19 @@ public class ProjectLoader
         return message.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
                message.Contains("could not", StringComparison.OrdinalIgnoreCase) ||
                message.Contains("failed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<LoadedProject?> TryFallbackAsync(string projectPath, CancellationToken ct)
+    {
+        var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var compileCommandsPath = Path.Combine(projectDirectory, "compile_commands.json");
+
+        var commands = CompileCommandsParser.Parse(compileCommandsPath);
+        if (commands is null)
+        {
+            return null;
+        }
+
+        return await AdhocProjectLoader.LoadAsync(projectPath, commands, ct).ConfigureAwait(false);
     }
 }

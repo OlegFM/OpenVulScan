@@ -25,6 +25,32 @@ public abstract class AstRule
         return _kindMap;
     }
 
+    private static readonly SyntaxKind[] s_binaryExpressionKinds =
+    [
+        SyntaxKind.AddExpression,
+        SyntaxKind.SubtractExpression,
+        SyntaxKind.MultiplyExpression,
+        SyntaxKind.DivideExpression,
+        SyntaxKind.ModuloExpression,
+        SyntaxKind.LeftShiftExpression,
+        SyntaxKind.RightShiftExpression,
+        SyntaxKind.LogicalOrExpression,
+        SyntaxKind.LogicalAndExpression,
+        SyntaxKind.BitwiseOrExpression,
+        SyntaxKind.BitwiseAndExpression,
+        SyntaxKind.ExclusiveOrExpression,
+        SyntaxKind.EqualsExpression,
+        SyntaxKind.NotEqualsExpression,
+        SyntaxKind.LessThanExpression,
+        SyntaxKind.LessThanOrEqualExpression,
+        SyntaxKind.GreaterThanExpression,
+        SyntaxKind.GreaterThanOrEqualExpression,
+        SyntaxKind.IsExpression,
+        SyntaxKind.AsExpression,
+        SyntaxKind.CoalesceExpression,
+        SyntaxKind.UnsignedRightShiftExpression,
+    ];
+
     private static Dictionary<SyntaxKind, MethodInfo> BuildKindMap(Type type)
     {
         var map = new Dictionary<SyntaxKind, MethodInfo>();
@@ -50,12 +76,22 @@ public abstract class AstRule
             }
 
             var kindName = method.Name.Substring(2);
-            if (!Enum.TryParse<SyntaxKind>(kindName, out var kind))
+            if (kindName == "BinaryExpression")
+            {
+                foreach (var kind in s_binaryExpressionKinds)
+                {
+                    map[kind] = method;
+                }
+
+                continue;
+            }
+
+            if (!Enum.TryParse<SyntaxKind>(kindName, out var syntaxKind))
             {
                 continue;
             }
 
-            map[kind] = method;
+            map[syntaxKind] = method;
         }
 
         return map;

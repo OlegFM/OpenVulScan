@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3001,
+  TestCase: IdenticalSubExpressions,
+  Source: class C { void M() { int a = 1; int b = 2; if (a == a) { } } },
+  Diagnostics: [
+    {
+      Id: V3001,
+      Message: There are identical sub-expressions to the left and to the right of the '==' operator,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 48,
+        EndLine: 1,
+        EndColumn: 54
+      }
+    }
+  ]
+}

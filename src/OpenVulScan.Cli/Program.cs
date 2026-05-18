@@ -8,6 +8,8 @@ internal sealed class Program
     {
         var rootCommand = new RootCommand("OpenVulScan vulnerability scanner");
         rootCommand.AddCommand(new AnalyzeCommand());
+        rootCommand.AddCommand(new RulesCommand());
+        rootCommand.AddCommand(new BaselineCommand());
         return await rootCommand.InvokeAsync(args).ConfigureAwait(false);
     }
 }

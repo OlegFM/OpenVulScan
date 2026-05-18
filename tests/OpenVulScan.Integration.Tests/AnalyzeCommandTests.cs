@@ -19,10 +19,9 @@ public class AnalyzeCommandTests
     [Fact]
     public async Task AnalyzeSolutionReturnsExitCode0AndContainsToolName()
     {
-        var handler = new AnalyzeCommandHandler();
         using var stream = new MemoryStream();
 
-        var result = await handler.ExecuteAsync(new AnalyzeOptions
+        var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
         {
             Path = GetSolutionPath(),
             Format = "sarif",
@@ -42,10 +41,9 @@ public class AnalyzeCommandTests
     [Fact]
     public async Task AnalyzeSolutionTextFormatReturnsPlainText()
     {
-        var handler = new AnalyzeCommandHandler();
         using var stream = new MemoryStream();
 
-        var result = await handler.ExecuteAsync(new AnalyzeOptions
+        var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
         {
             Path = GetSolutionPath(),
             Format = "text",
@@ -66,10 +64,9 @@ public class AnalyzeCommandTests
     [Fact]
     public async Task AnalyzeSolutionJsonFormatReturnsParseableJson()
     {
-        var handler = new AnalyzeCommandHandler();
         using var stream = new MemoryStream();
 
-        var result = await handler.ExecuteAsync(new AnalyzeOptions
+        var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
         {
             Path = GetSolutionPath(),
             Format = "json",
@@ -92,10 +89,9 @@ public class AnalyzeCommandTests
     [Fact]
     public async Task AnalyzeNonExistentPathReturnsExitCode2()
     {
-        var handler = new AnalyzeCommandHandler();
         using var stream = new MemoryStream();
 
-        var result = await handler.ExecuteAsync(new AnalyzeOptions
+        var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
         {
             Path = "nonexistent.slnx",
             Format = "text",
@@ -122,11 +118,10 @@ public class AnalyzeCommandTests
 
         try
         {
-            var handler = new AnalyzeCommandHandler();
             using var stream = new MemoryStream();
             var sw = Stopwatch.StartNew();
 
-            var result = await handler.ExecuteAsync(new AnalyzeOptions
+            var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
             {
                 Path = projectPath,
                 Format = "text",

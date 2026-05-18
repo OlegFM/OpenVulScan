@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>OpenVulScan.Rules.Ast</AssemblyName>
     <RootNamespace>OpenVulScan</RootNamespace>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

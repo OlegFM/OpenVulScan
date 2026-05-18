@@ -24,5 +24,9 @@
 
     <!-- MSBuild Locator -->
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.9.1" />
+
+    <!-- Snapshot Testing -->
+    <PackageVersion Include="Verify.Xunit" Version="28.10.0" />
+    <PackageVersion Include="Verify" Version="28.10.0" />
   </ItemGroup>
 </Project>

@@ -16,6 +16,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Verify.Xunit" />
+    <PackageReference Include="Verify" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,5 +28,6 @@
     <ProjectReference Include="..\..\src\OpenVulScan.Rules.Performance\OpenVulScan.Rules.Performance.csproj" />
     <ProjectReference Include="..\..\src\OpenVulScan.RuleEngine\OpenVulScan.RuleEngine.csproj" />
     <ProjectReference Include="..\..\src\OpenVulScan.Core\OpenVulScan.Core.csproj" />
+    <ProjectReference Include="..\..\src\OpenVulScan.Sarif\OpenVulScan.Sarif.csproj" />
   </ItemGroup>
 </Project>

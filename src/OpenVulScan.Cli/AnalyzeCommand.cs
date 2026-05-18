@@ -50,8 +50,6 @@ internal sealed class AnalyzeCommand : Command
             var exclude = context.ParseResult.GetValueForOption(excludeOption);
             var suppress = context.ParseResult.GetValueForOption(suppressOption);
 
-            var handler = new AnalyzeCommandHandler();
-
             Stream outputStream;
             if (string.IsNullOrEmpty(output))
             {
@@ -64,7 +62,7 @@ internal sealed class AnalyzeCommand : Command
 
             try
             {
-                var result = await handler.ExecuteAsync(
+                var result = await AnalyzeCommandHandler.ExecuteAsync(
                     new AnalyzeOptions
                     {
                         Path = path,

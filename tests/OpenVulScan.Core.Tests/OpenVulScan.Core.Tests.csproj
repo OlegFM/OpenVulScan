@@ -3,6 +3,7 @@
     <IsPackable>false</IsPackable>
     <AssemblyName>OpenVulScan.Core.Tests</AssemblyName>
     <RootNamespace>OpenVulScan</RootNamespace>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

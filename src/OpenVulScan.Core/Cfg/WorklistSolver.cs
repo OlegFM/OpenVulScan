@@ -37,7 +37,7 @@ public sealed class WorklistSolver<T>
         ArgumentNullException.ThrowIfNull(cfg);
 
         var inStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
-        var outStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
+        var outStates = cfg.Blocks.ToDictionary(b => b, b => _transfer.Apply(_lattice.Bottom, b));
 
         var entryBlock = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Entry);
         if (entryBlock is not null)
@@ -46,7 +46,8 @@ public sealed class WorklistSolver<T>
             outStates[entryBlock] = _transfer.Apply(initialEntryState, entryBlock);
         }
 
-        var rpo = ComputeReversePostOrder(cfg);
+        var successors = BuildSuccessorMap(cfg);
+        var rpo = ComputeReversePostOrder(cfg, successors);
         var worklist = new Queue<BasicBlock>();
         foreach (var block in rpo)
         {
@@ -76,13 +77,44 @@ public sealed class WorklistSolver<T>
 
             outStates[block] = newOut;
 
-            EnqueueSuccessor(block.FallThroughSuccessor, worklist);
-            EnqueueSuccessor(block.ConditionalSuccessor, worklist);
+            if (successors.TryGetValue(block, out var succs))
+            {
+                foreach (var succ in succs)
+                {
+                    worklist.Enqueue(succ);
+                }
+            }
         }
 
         return new WorklistSolverResult<T>(
             ImmutableDictionary.CreateRange(inStates),
+            ImmutableDictionary.CreateRange(outStates),
             converged: worklist.Count == 0);
+    }
+
+    private static Dictionary<BasicBlock, List<BasicBlock>> BuildSuccessorMap(ControlFlowGraph cfg)
+    {
+        var successors = new Dictionary<BasicBlock, List<BasicBlock>>();
+        foreach (var block in cfg.Blocks)
+        {
+            foreach (var pred in block.Predecessors)
+            {
+                if (pred.Source is null)
+                {
+                    continue;
+                }
+
+                if (!successors.TryGetValue(pred.Source, out var list))
+                {
+                    list = new List<BasicBlock>();
+                    successors[pred.Source] = list;
+                }
+
+                list.Add(block);
+            }
+        }
+
+        return successors;
     }
 
     private T ComputeInState(BasicBlock block, Dictionary<BasicBlock, T> outStates, BasicBlock? entryBlock, T initialEntryState)
@@ -110,15 +142,9 @@ public sealed class WorklistSolver<T>
     private bool AreEqual(T left, T right)
         => _lattice.LessOrEqual(left, right) && _lattice.LessOrEqual(right, left);
 
-    private static void EnqueueSuccessor(ControlFlowBranch? branch, Queue<BasicBlock> worklist)
-    {
-        if (branch?.Destination is not null)
-        {
-            worklist.Enqueue(branch.Destination);
-        }
-    }
-
-    private static ImmutableArray<BasicBlock> ComputeReversePostOrder(ControlFlowGraph cfg)
+    private static ImmutableArray<BasicBlock> ComputeReversePostOrder(
+        ControlFlowGraph cfg,
+        Dictionary<BasicBlock, List<BasicBlock>> successors)
     {
         var visited = new HashSet<BasicBlock>();
         var postOrder = new List<BasicBlock>();
@@ -130,14 +156,12 @@ public sealed class WorklistSolver<T>
                 return;
             }
 
-            if (block.FallThroughSuccessor?.Destination is not null)
+            if (successors.TryGetValue(block, out var succs))
             {
-                Dfs(block.FallThroughSuccessor.Destination);
-            }
-
-            if (block.ConditionalSuccessor?.Destination is not null)
-            {
-                Dfs(block.ConditionalSuccessor.Destination);
+                foreach (var succ in succs)
+                {
+                    Dfs(succ);
+                }
             }
 
             postOrder.Add(block);

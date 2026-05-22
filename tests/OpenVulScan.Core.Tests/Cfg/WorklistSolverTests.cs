@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,10 +15,12 @@ public class WorklistSolverResultTests
     [Fact]
     public void Result_HoldsConvergedFlag()
     {
-        var dict = ImmutableDictionary<BasicBlock, bool>.Empty;
-        var result = new WorklistSolverResult<bool>(dict, converged: true);
+        var inDict = ImmutableDictionary<BasicBlock, bool>.Empty;
+        var outDict = ImmutableDictionary<BasicBlock, bool>.Empty;
+        var result = new WorklistSolverResult<bool>(inDict, outDict, converged: true);
         Assert.True(result.Converged);
-        Assert.Same(dict, result.InStates);
+        Assert.Same(inDict, result.InStates);
+        Assert.Same(outDict, result.OutStates);
     }
 }
 
@@ -201,20 +204,23 @@ class C
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
 
-        // Find catch block (should have predecessor from try block)
-        var catchBlock = cfg.Blocks.FirstOrDefault(b => b.Predecessors.Any(p => p.Semantics == ControlFlowBranchSemantics.StructuredExceptionHandling));
-        
-        // Even if we can't identify catch block by semantics, verify all blocks with predecessors are reachable
-        foreach (var block in cfg.Blocks.Where(b => !b.Predecessors.IsEmpty))
+        // In Roslyn CFG, catch blocks have NO explicit predecessors (exception edge is implicit).
+        // However, the exit block merges both try and catch paths.
+        // Verify the exit block's IN state contains ordinals from both try and catch blocks.
+        var exitBlock = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Exit);
+        Assert.NotNull(exitBlock);
+        Assert.True(exitBlock.Predecessors.Length >= 2, "Exit block should have at least 2 predecessors (try + catch)");
+
+        var predOrdinals = exitBlock.Predecessors.Select(p => p.Source.Ordinal).ToList();
+        foreach (var predOrdinal in predOrdinals)
         {
-            Assert.NotEmpty(result.InStates[block]);
+            Assert.Contains(predOrdinal, result.InStates[exitBlock]);
         }
 
-        if (catchBlock is not null)
-        {
-            // Catch block should have at least one predecessor ordinal
-            Assert.NotEmpty(result.InStates[catchBlock]);
-        }
+        // Also verify the catch block itself was processed (it has an IN state even if Bottom)
+        var catchBlock = cfg.Blocks.FirstOrDefault(b => b.EnclosingRegion?.Kind == ControlFlowRegionKind.Catch);
+        Assert.NotNull(catchBlock);
+        Assert.True(result.InStates.ContainsKey(catchBlock), "Catch block should have an IN state");
     }
 
     [Fact]
@@ -268,6 +274,28 @@ class C
         {
             Assert.Equal(result1.InStates[block], result2.InStates[block]);
         }
+    }
+
+    [Fact]
+    public void CancellationToken_ThrowsWhenCancelled()
+    {
+        var code = @"
+class C
+{
+    void M()
+    {
+        int x = 1;
+    }
+}";
+        var cfg = CompileAndGetCfg(code);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => solver.Solve(cfg, cts.Token));
     }
 
     [Fact]

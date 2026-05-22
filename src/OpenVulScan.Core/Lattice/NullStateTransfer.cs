@@ -42,6 +42,7 @@ public sealed class NullStateTransfer : ITransfer<NullState>
             IConditionalAccessOperation => ApplyConditionalAccess(state),
             IMemberReferenceOperation memberRef => ApplyMemberReference(state, memberRef),
             ICoalesceOperation => state,
+            ILiteralOperation literal when literal.ConstantValue.HasValue && literal.ConstantValue.Value is null => NullState.DefinitelyNull,
             _ => state,
         };
     }

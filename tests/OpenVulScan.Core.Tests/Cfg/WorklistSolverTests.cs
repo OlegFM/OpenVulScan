@@ -224,7 +224,7 @@ class C
     }
 
     [Fact]
-    public void MaxIterations_ReturnsBestApproximation()
+    public void MaxIterationsZero_ReturnsBottom()
     {
         var code = @"
 class C

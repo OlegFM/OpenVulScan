@@ -26,6 +26,13 @@ public class NullStateTransferTests
     }
 
     [Fact]
+    public void Apply_NullLiteral_ReturnsDefinitelyNull()
+    {
+        var op = CompileExpression("null");
+        Assert.Equal(NullState.DefinitelyNull, _transfer.Apply(NullState.Unknown, op));
+    }
+
+    [Fact]
     public void Apply_Assignment_ReturnsRhsState()
     {
         var op = CompileExpression("x = y");

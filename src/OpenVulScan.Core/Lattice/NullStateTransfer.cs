@@ -33,6 +33,10 @@ public sealed class NullStateTransfer : ITransfer<NullState>
     {
         return operation switch
         {
+            // NOTE: ITransfer<NullState> receives a single aggregated state.
+            // For precise assignment/coalesce handling the solver must pass
+            // operand states separately. Returning the incoming state is the
+            // conservative sound approximation (Phase 2 limitation).
             ISimpleAssignmentOperation => state,
             ICompoundAssignmentOperation => state,
             IConditionalAccessOperation => ApplyConditionalAccess(state),
@@ -53,10 +57,19 @@ public sealed class NullStateTransfer : ITransfer<NullState>
     /// <c>x is null</c> or <c>x == null</c> check.
     /// </summary>
     /// <param name="state">The state before the check.</param>
-    /// <returns>The state in the <em>true</em> branch.</returns>
+    /// <returns>
+    /// The state in the <em>true</em> branch.
+    /// Returns <see cref="NullState.Unknown"/> (Bottom) when the branch is
+    /// unreachable because the state already contradicts the condition
+    /// (e.g. <see cref="NullState.NotNull"/> refined for null-check).
+    /// </returns>
     public static NullState RefineForNullCheck(NullState state)
     {
-        return NullState.DefinitelyNull;
+        return state switch
+        {
+            NullState.NotNull => NullState.Unknown,
+            _ => NullState.DefinitelyNull,
+        };
     }
 
     /// <summary>
@@ -64,10 +77,19 @@ public sealed class NullStateTransfer : ITransfer<NullState>
     /// <c>x is null</c> or <c>x != null</c> check.
     /// </summary>
     /// <param name="state">The state before the check.</param>
-    /// <returns>The state in the <em>false</em> branch.</returns>
+    /// <returns>
+    /// The state in the <em>false</em> branch.
+    /// Returns <see cref="NullState.Unknown"/> (Bottom) when the branch is
+    /// unreachable because the state already contradicts the condition
+    /// (e.g. <see cref="NullState.DefinitelyNull"/> refined for not-null-check).
+    /// </returns>
     public static NullState RefineForNotNullCheck(NullState state)
     {
-        return NullState.NotNull;
+        return state switch
+        {
+            NullState.DefinitelyNull => NullState.Unknown,
+            _ => NullState.NotNull,
+        };
     }
 
     private static NullState ApplyConditionalAccess(NullState receiverState)
@@ -90,7 +112,7 @@ public sealed class NullStateTransfer : ITransfer<NullState>
         switch (receiverState)
         {
             case NullState.DefinitelyNull:
-                return NullState.DefinitelyNull;
+                return NullState.Unknown;
             case NullState.MaybeNull:
                 return NullState.MaybeNull;
             case NullState.NotNull:

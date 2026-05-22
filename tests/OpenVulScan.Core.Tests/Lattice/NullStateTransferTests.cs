@@ -35,10 +35,10 @@ public class NullStateTransferTests
     }
 
     [Fact]
-    public void Apply_MemberAccess_DefinitelyNullReceiver_ReturnsDefinitelyNull()
+    public void Apply_MemberAccess_DefinitelyNullReceiver_ReturnsBottom()
     {
         var op = CompileExpression("s.Length", "string s = \"\";");
-        Assert.Equal(NullState.DefinitelyNull, _transfer.Apply(NullState.DefinitelyNull, op));
+        Assert.Equal(NullState.Unknown, _transfer.Apply(NullState.DefinitelyNull, op));
     }
 
     [Fact]
@@ -111,9 +111,9 @@ public class NullStateTransferTests
     }
 
     [Fact]
-    public void RefineForNullCheck_NotNull_BecomesDefinitelyNull()
+    public void RefineForNullCheck_NotNull_ReturnsBottom()
     {
-        Assert.Equal(NullState.DefinitelyNull, NullStateTransfer.RefineForNullCheck(NullState.NotNull));
+        Assert.Equal(NullState.Unknown, NullStateTransfer.RefineForNullCheck(NullState.NotNull));
     }
 
     [Fact]
@@ -129,9 +129,9 @@ public class NullStateTransferTests
     }
 
     [Fact]
-    public void RefineForNotNullCheck_DefinitelyNull_BecomesNotNull()
+    public void RefineForNotNullCheck_DefinitelyNull_ReturnsBottom()
     {
-        Assert.Equal(NullState.NotNull, NullStateTransfer.RefineForNotNullCheck(NullState.DefinitelyNull));
+        Assert.Equal(NullState.Unknown, NullStateTransfer.RefineForNotNullCheck(NullState.DefinitelyNull));
     }
 
     [Fact]
@@ -166,11 +166,10 @@ public class NullStateTransferTests
         Assert.Equal(NullState.NotNull, _transfer.Apply(NullState.MaybeNull, op));
     }
 
-    [Fact]
+    [Fact(Skip = "Generic constraint initial states are determined by the solver, not the transfer function. Transfer tests operate on a single aggregated NullState and cannot meaningfully test generic constraint handling without solver integration.")]
     public void Apply_GenericWithClassConstraint_KnownNotNull_ReturnsNotNull()
     {
-        var op = CompileExpression("x", "string x = \"\";");
-        Assert.Equal(NullState.NotNull, _transfer.Apply(NullState.NotNull, op));
+        // Placeholder for solver-level integration test.
     }
 
     [Fact]

@@ -117,4 +117,20 @@ public class MapLatticeTests
 
         Assert.Equal(a, result);
     }
+
+    [Fact]
+    public void Axiom_MapAbsorption()
+    {
+        var a = ImmutableDictionary<string, BoolLatticeValue>.Empty
+            .Add("x", BoolLatticeValue.Bottom)
+            .Add("y", BoolLatticeValue.False);
+        var b = ImmutableDictionary<string, BoolLatticeValue>.Empty
+            .Add("x", BoolLatticeValue.True)
+            .Add("z", BoolLatticeValue.Bottom);
+
+        var join = _lattice.Join(a, b);
+
+        Assert.True(_lattice.LessOrEqual(a, join));
+        Assert.True(_lattice.LessOrEqual(b, join));
+    }
 }

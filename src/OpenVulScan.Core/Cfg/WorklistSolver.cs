@@ -17,7 +17,7 @@ public sealed class WorklistSolver<T>
     {
         _lattice = lattice ?? throw new ArgumentNullException(nameof(lattice));
         _transfer = transfer ?? throw new ArgumentNullException(nameof(transfer));
-        _maxIterations = maxIterations > 0 ? maxIterations : throw new ArgumentOutOfRangeException(nameof(maxIterations));
+        _maxIterations = maxIterations >= 0 ? maxIterations : throw new ArgumentOutOfRangeException(nameof(maxIterations));
     }
 
     public WorklistSolverResult<T> Solve(ControlFlowGraph cfg, CancellationToken ct = default)

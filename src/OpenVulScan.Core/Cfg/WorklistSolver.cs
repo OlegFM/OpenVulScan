@@ -21,37 +21,59 @@ public sealed class WorklistSolver<T>
     }
 
     public WorklistSolverResult<T> Solve(ControlFlowGraph cfg, CancellationToken ct = default)
+        => Solve(cfg, _lattice.Bottom, ct);
+
+    public WorklistSolverResult<T> Solve(ControlFlowGraph cfg, T initialEntryState, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(cfg);
-
-        var rpo = ComputeReversePostOrder(cfg);
 
         var inStates = cfg.Blocks.ToImmutableDictionary(b => b, _ => _lattice.Bottom);
         var outStates = cfg.Blocks.ToImmutableDictionary(b => b, _ => _lattice.Bottom);
 
-        bool changed;
+        // Entry block starts with the caller-supplied initial state
+        var entryBlock = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Entry);
+        if (entryBlock is not null)
+        {
+            inStates = inStates.SetItem(entryBlock, initialEntryState);
+            outStates = outStates.SetItem(entryBlock, _transfer.Apply(initialEntryState, entryBlock));
+        }
+
+        var worklist = new Queue<BasicBlock>();
+        foreach (var block in cfg.Blocks)
+        {
+            worklist.Enqueue(block);
+        }
+
         int iterations = 0;
-        do
+        while (worklist.Count > 0 && iterations < _maxIterations)
         {
             ct.ThrowIfCancellationRequested();
-            changed = false;
-            foreach (var block in rpo)
-            {
-                var inState = ComputeInState(block, outStates);
-                var outState = _transfer.Apply(inState, block);
+            var block = worklist.Dequeue();
 
-                if (!_lattice.LessOrEqual(outState, outStates[block]))
-                {
-                    outStates = outStates.SetItem(block, outState);
-                    inStates = inStates.SetItem(block, inState);
-                    changed = true;
-                }
+            var newIn = ComputeInState(block, outStates);
+            if (AreEqual(newIn, inStates[block]))
+            {
+                continue;
             }
 
-            iterations++;
-        } while (changed && iterations < _maxIterations);
+            inStates = inStates.SetItem(block, newIn);
+            var newOut = _transfer.Apply(newIn, block);
 
-        return new WorklistSolverResult<T>(inStates, converged: !changed);
+            if (AreEqual(newOut, outStates[block]))
+            {
+                continue;
+            }
+
+            outStates = outStates.SetItem(block, newOut);
+
+            // Enqueue all successors
+            EnqueueSuccessor(block.FallThroughSuccessor, worklist);
+            EnqueueSuccessor(block.ConditionalSuccessor, worklist);
+
+            iterations++;
+        }
+
+        return new WorklistSolverResult<T>(inStates, converged: worklist.Count == 0);
     }
 
     private T ComputeInState(BasicBlock block, ImmutableDictionary<BasicBlock, T> outStates)
@@ -71,42 +93,14 @@ public sealed class WorklistSolver<T>
         return state;
     }
 
-    private static ImmutableArray<BasicBlock> ComputeReversePostOrder(ControlFlowGraph cfg)
+    private bool AreEqual(T left, T right)
+        => _lattice.LessOrEqual(left, right) && _lattice.LessOrEqual(right, left);
+
+    private static void EnqueueSuccessor(ControlFlowBranch? branch, Queue<BasicBlock> worklist)
     {
-        var visited = new HashSet<BasicBlock>();
-        var postOrder = new List<BasicBlock>();
-
-        void Dfs(BasicBlock block)
+        if (branch?.Destination is not null)
         {
-            if (!visited.Add(block))
-            {
-                return;
-            }
-
-            if (block.FallThroughSuccessor?.Destination is not null)
-            {
-                Dfs(block.FallThroughSuccessor.Destination);
-            }
-
-            if (block.ConditionalSuccessor?.Destination is not null)
-            {
-                Dfs(block.ConditionalSuccessor.Destination);
-            }
-
-            postOrder.Add(block);
+            worklist.Enqueue(branch.Destination);
         }
-
-        Dfs(cfg.Blocks.First());
-
-        foreach (var block in cfg.Blocks)
-        {
-            if (!visited.Contains(block))
-            {
-                postOrder.Add(block);
-            }
-        }
-
-        postOrder.Reverse();
-        return [.. postOrder];
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -25,18 +26,10 @@ public class WorklistSolverTests
     [Fact]
     public void Solver_CanBeConstructed()
     {
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.Top);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
         Assert.NotNull(solver);
-    }
-
-    private sealed class ConstantBoolTransfer : ITransfer<BoolLatticeValue>
-    {
-        private readonly BoolLatticeValue _value;
-        public ConstantBoolTransfer(BoolLatticeValue value) => _value = value;
-        public BoolLatticeValue Apply(BoolLatticeValue state, IOperation operation) => _value;
-        public BoolLatticeValue Apply(BoolLatticeValue state, BasicBlock block) => _value;
     }
 
     [Fact]
@@ -52,17 +45,20 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
 
         var result = solver.Solve(cfg);
 
         Assert.True(result.Converged);
-        foreach (var block in cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry && !b.Predecessors.IsEmpty))
-        {
-            Assert.Equal(BoolLatticeValue.True, result.InStates[block]);
-        }
+        // Every reachable block should have all preceding block ordinals in its IN state
+        var blocks = cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry).ToList();
+        Assert.True(blocks.Count >= 2, "Expected at least 2 non-entry blocks");
+        
+        // The first non-entry block should have the entry block in its predecessors
+        var firstBlock = blocks.First();
+        Assert.Contains(cfg.Blocks.First(b => b.Kind == BasicBlockKind.Entry).Ordinal, result.InStates[firstBlock]);
     }
 
     [Fact]
@@ -81,15 +77,24 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
 
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
-        foreach (var block in cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry && !b.Predecessors.IsEmpty))
+
+        // Find merge block (block with multiple predecessors that isn't entry)
+        var mergeBlock = cfg.Blocks.FirstOrDefault(b => b.Predecessors.Length > 1 && b.Kind != BasicBlockKind.Entry);
+        Assert.NotNull(mergeBlock);
+
+        // Merge block's IN state should contain ordinals from both branches
+        var predOrdinals = mergeBlock.Predecessors.Select(p => p.Source.Ordinal).ToList();
+        Assert.True(predOrdinals.Count >= 2, "Expected at least 2 predecessors");
+        
+        foreach (var predOrdinal in predOrdinals)
         {
-            Assert.Equal(BoolLatticeValue.True, result.InStates[block]);
+            Assert.Contains(predOrdinal, result.InStates[mergeBlock]);
         }
     }
 
@@ -107,15 +112,28 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
 
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
-        foreach (var block in cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry && !b.Predecessors.IsEmpty))
+
+        // Find loop header (block with back edge predecessor)
+        var loopHeader = cfg.Blocks.FirstOrDefault(b => b.Predecessors.Any(p => p.Source.Ordinal >= b.Ordinal));
+        Assert.NotNull(loopHeader);
+
+        // Loop header should contain ordinals from its back-edge predecessor(s)
+        // This proves convergence required multiple iterations
+        var backEdgePredOrdinals = loopHeader.Predecessors
+            .Where(p => p.Source.Ordinal >= loopHeader.Ordinal)
+            .Select(p => p.Source.Ordinal)
+            .ToList();
+        
+        Assert.NotEmpty(backEdgePredOrdinals);
+        foreach (var predOrdinal in backEdgePredOrdinals)
         {
-            Assert.Equal(BoolLatticeValue.True, result.InStates[block]);
+            Assert.Contains(predOrdinal, result.InStates[loopHeader]);
         }
     }
 
@@ -136,15 +154,24 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
 
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
-        foreach (var block in cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry && !b.Predecessors.IsEmpty))
+
+        // Find merge block after switch
+        var mergeBlock = cfg.Blocks.FirstOrDefault(b => b.Predecessors.Length > 1 && b.Kind != BasicBlockKind.Entry);
+        Assert.NotNull(mergeBlock);
+
+        // Merge block should contain ordinals from all case branches
+        var predOrdinals = mergeBlock.Predecessors.Select(p => p.Source.Ordinal).ToList();
+        Assert.True(predOrdinals.Count >= 2, "Expected at least 2 predecessors for switch merge");
+        
+        foreach (var predOrdinal in predOrdinals)
         {
-            Assert.Equal(BoolLatticeValue.True, result.InStates[block]);
+            Assert.Contains(predOrdinal, result.InStates[mergeBlock]);
         }
     }
 
@@ -167,15 +194,26 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
 
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
-        foreach (var block in cfg.Blocks.Where(b => b.Kind != BasicBlockKind.Entry && !b.Predecessors.IsEmpty))
+
+        // Find catch block (should have predecessor from try block)
+        var catchBlock = cfg.Blocks.FirstOrDefault(b => b.Predecessors.Any(p => p.Semantics == ControlFlowBranchSemantics.StructuredExceptionHandling));
+        
+        // Even if we can't identify catch block by semantics, verify all blocks with predecessors are reachable
+        foreach (var block in cfg.Blocks.Where(b => !b.Predecessors.IsEmpty))
         {
-            Assert.Equal(BoolLatticeValue.True, result.InStates[block]);
+            Assert.NotEmpty(result.InStates[block]);
+        }
+
+        if (catchBlock is not null)
+        {
+            // Catch block should have at least one predecessor ordinal
+            Assert.NotEmpty(result.InStates[catchBlock]);
         }
     }
 
@@ -191,12 +229,45 @@ class C
     }
 }";
         var cfg = CompileAndGetCfg(code);
-        var lattice = new BoolFlatLattice();
-        var transfer = new ConstantBoolTransfer(BoolLatticeValue.True);
-        var solver = new WorklistSolver<BoolLatticeValue>(lattice, transfer, maxIterations: 0);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer, maxIterations: 0);
 
         var result = solver.Solve(cfg);
         Assert.False(result.Converged);
+    }
+
+    [Fact]
+    public void Solver_IsIdempotent()
+    {
+        var code = @"
+class C
+{
+    void M(bool cond)
+    {
+        int x;
+        if (cond)
+            x = 1;
+        else
+            x = 2;
+    }
+}";
+        var cfg = CompileAndGetCfg(code);
+        var lattice = new BlockReachabilityLattice();
+        var transfer = new BlockReachabilityTransfer();
+        var solver = new WorklistSolver<ImmutableHashSet<int>>(lattice, transfer);
+
+        var result1 = solver.Solve(cfg);
+        var result2 = solver.Solve(cfg);
+
+        Assert.True(result1.Converged);
+        Assert.True(result2.Converged);
+        Assert.Equal(result1.InStates.Count, result2.InStates.Count);
+        
+        foreach (var block in cfg.Blocks)
+        {
+            Assert.Equal(result1.InStates[block], result2.InStates[block]);
+        }
     }
 
     [Fact]
@@ -218,6 +289,30 @@ class C
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
         Assert.NotEmpty(result.InStates);
+    }
+
+    // --- Test lattice and transfer ---
+
+    private sealed class BlockReachabilityLattice : ILattice<ImmutableHashSet<int>>
+    {
+        public ImmutableHashSet<int> Bottom => ImmutableHashSet<int>.Empty;
+
+        public ImmutableHashSet<int> Top => throw new InvalidOperationException("BlockReachabilityLattice has no finite Top element.");
+
+        public ImmutableHashSet<int> Join(ImmutableHashSet<int> left, ImmutableHashSet<int> right)
+            => left.Union(right);
+
+        public bool LessOrEqual(ImmutableHashSet<int> left, ImmutableHashSet<int> right)
+            => left.IsSubsetOf(right);
+    }
+
+    private sealed class BlockReachabilityTransfer : ITransfer<ImmutableHashSet<int>>
+    {
+        public ImmutableHashSet<int> Apply(ImmutableHashSet<int> state, IOperation operation)
+            => state;
+
+        public ImmutableHashSet<int> Apply(ImmutableHashSet<int> state, BasicBlock block)
+            => state.Add(block.Ordinal);
     }
 
     private static ControlFlowGraph CompileAndGetCfg(string code)

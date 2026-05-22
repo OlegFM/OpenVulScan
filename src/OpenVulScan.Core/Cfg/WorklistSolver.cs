@@ -13,7 +13,16 @@ public sealed class WorklistSolver<T>
     private readonly ITransfer<T> _transfer;
     private readonly int _maxIterations;
 
-    public WorklistSolver(ILattice<T> lattice, ITransfer<T> transfer, int maxIterations = 10_000)
+    /// <summary>
+    /// Creates a worklist solver for the given lattice and transfer function.
+    /// </summary>
+    /// <param name="lattice">The lattice that defines Bottom, Top, Join, and order.</param>
+    /// <param name="transfer">The transfer function that maps IN state to OUT state per block.</param>
+    /// <param name="maxIterations">
+    /// Maximum number of individual block visits (worklist pops) before graceful exit.
+    /// Default is 100_000. This counts individual block visits, not full rounds over the CFG.
+    /// </param>
+    public WorklistSolver(ILattice<T> lattice, ITransfer<T> transfer, int maxIterations = 100_000)
     {
         _lattice = lattice ?? throw new ArgumentNullException(nameof(lattice));
         _transfer = transfer ?? throw new ArgumentNullException(nameof(transfer));
@@ -27,14 +36,14 @@ public sealed class WorklistSolver<T>
     {
         ArgumentNullException.ThrowIfNull(cfg);
 
-        var inStates = cfg.Blocks.ToImmutableDictionary(b => b, _ => _lattice.Bottom);
-        var outStates = cfg.Blocks.ToImmutableDictionary(b => b, _ => _lattice.Bottom);
+        var inStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
+        var outStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
 
         var entryBlock = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Entry);
         if (entryBlock is not null)
         {
-            inStates = inStates.SetItem(entryBlock, initialEntryState);
-            outStates = outStates.SetItem(entryBlock, _transfer.Apply(initialEntryState, entryBlock));
+            inStates[entryBlock] = initialEntryState;
+            outStates[entryBlock] = _transfer.Apply(initialEntryState, entryBlock);
         }
 
         var rpo = ComputeReversePostOrder(cfg);
@@ -57,7 +66,7 @@ public sealed class WorklistSolver<T>
                 continue;
             }
 
-            inStates = inStates.SetItem(block, newIn);
+            inStates[block] = newIn;
             var newOut = _transfer.Apply(newIn, block);
 
             if (AreEqual(newOut, outStates[block]))
@@ -65,16 +74,18 @@ public sealed class WorklistSolver<T>
                 continue;
             }
 
-            outStates = outStates.SetItem(block, newOut);
+            outStates[block] = newOut;
 
             EnqueueSuccessor(block.FallThroughSuccessor, worklist);
             EnqueueSuccessor(block.ConditionalSuccessor, worklist);
         }
 
-        return new WorklistSolverResult<T>(inStates, converged: worklist.Count == 0);
+        return new WorklistSolverResult<T>(
+            ImmutableDictionary.CreateRange(inStates),
+            converged: worklist.Count == 0);
     }
 
-    private T ComputeInState(BasicBlock block, ImmutableDictionary<BasicBlock, T> outStates, BasicBlock? entryBlock, T initialEntryState)
+    private T ComputeInState(BasicBlock block, Dictionary<BasicBlock, T> outStates, BasicBlock? entryBlock, T initialEntryState)
     {
         if (block == entryBlock)
         {

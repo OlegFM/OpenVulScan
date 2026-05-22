@@ -289,6 +289,16 @@ class C
         var result = solver.Solve(cfg);
         Assert.True(result.Converged);
         Assert.NotEmpty(result.InStates);
+
+        var entryBlock = cfg.Blocks.First(b => b.Kind == BasicBlockKind.Entry);
+        Assert.Equal(NullState.Unknown, result.InStates[entryBlock]);
+
+        // All blocks should have Unknown state since NullStateTransfer
+        // doesn't track parameter nullability without symbol table integration
+        foreach (var block in cfg.Blocks)
+        {
+            Assert.Equal(NullState.Unknown, result.InStates[block]);
+        }
     }
 
     // --- Test lattice and transfer ---

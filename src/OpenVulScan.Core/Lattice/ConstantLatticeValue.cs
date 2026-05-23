@@ -66,7 +66,7 @@ public readonly struct ConstantLatticeValue : IEquatable<ConstantLatticeValue>
             LatticeElementKind.Bottom => 0,
             LatticeElementKind.Top => 1,
             LatticeElementKind.Const => HashCode.Combine(2, Value?.GetHashCode() ?? 0),
-            _ => throw new InvalidOperationException($"Unknown lattice element kind: {Kind}")
+            _ => -1,
         };
     }
 

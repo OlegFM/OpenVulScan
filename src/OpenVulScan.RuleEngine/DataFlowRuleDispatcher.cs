@@ -42,7 +42,7 @@ public sealed class DataFlowRuleDispatcher<TLattice>
 
                 foreach (var rule in _rules)
                 {
-                    var solver = new WorklistSolver<TLattice>(rule.Lattice, rule.Transfer);
+                    var solver = new WorklistSolver<TLattice>(rule.Lattice, rule.Transfer, rule.EdgeRefiner);
                     var result = solver.Solve(cfg, cancellationToken);
 
                     foreach (var block in cfg.Blocks)
@@ -70,6 +70,14 @@ public sealed class DataFlowRuleDispatcher<TLattice>
         foreach (var operation in block.Operations)
         {
             foreach (var descendant in GetDescendantsAndSelf(operation))
+            {
+                yield return descendant;
+            }
+        }
+
+        if (block.BranchValue is not null)
+        {
+            foreach (var descendant in GetDescendantsAndSelf(block.BranchValue))
             {
                 yield return descendant;
             }

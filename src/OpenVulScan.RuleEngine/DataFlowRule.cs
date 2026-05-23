@@ -9,6 +9,8 @@ public abstract class DataFlowRule<TLattice>
 
     public abstract ITransfer<TLattice> Transfer { get; }
 
+    public virtual IEdgeRefiner<TLattice>? EdgeRefiner => null;
+
     protected virtual void OnState(IOperation operation, TLattice state, DataFlowContext context)
     {
     }

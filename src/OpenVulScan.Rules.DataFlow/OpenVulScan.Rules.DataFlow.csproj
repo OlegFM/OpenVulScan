@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>OpenVulScan.Rules.DataFlow</AssemblyName>
     <RootNamespace>OpenVulScan</RootNamespace>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -11,6 +11,7 @@ public sealed class WorklistSolver<T>
 {
     private readonly ILattice<T> _lattice;
     private readonly ITransfer<T> _transfer;
+    private readonly IEdgeRefiner<T>? _edgeRefiner;
     private readonly int _maxIterations;
 
     /// <summary>
@@ -18,14 +19,19 @@ public sealed class WorklistSolver<T>
     /// </summary>
     /// <param name="lattice">The lattice that defines Bottom, Top, Join, and order.</param>
     /// <param name="transfer">The transfer function that maps IN state to OUT state per block.</param>
+    /// <param name="edgeRefiner">
+    /// Optional edge refiner for path-sensitive analysis. When provided, the solver
+    /// refines predecessor out-states for each control-flow edge before joining.
+    /// </param>
     /// <param name="maxIterations">
     /// Maximum number of individual block visits (worklist pops) before graceful exit.
     /// Default is 100_000. This counts individual block visits, not full rounds over the CFG.
     /// </param>
-    public WorklistSolver(ILattice<T> lattice, ITransfer<T> transfer, int maxIterations = 100_000)
+    public WorklistSolver(ILattice<T> lattice, ITransfer<T> transfer, IEdgeRefiner<T>? edgeRefiner = null, int maxIterations = 100_000)
     {
         _lattice = lattice ?? throw new ArgumentNullException(nameof(lattice));
         _transfer = transfer ?? throw new ArgumentNullException(nameof(transfer));
+        _edgeRefiner = edgeRefiner;
         _maxIterations = maxIterations >= 0 ? maxIterations : throw new ArgumentOutOfRangeException(nameof(maxIterations));
     }
 
@@ -130,13 +136,23 @@ public sealed class WorklistSolver<T>
             return _lattice.Bottom;
         }
 
-        var state = outStates[preds[0].Source];
+        var state = RefineOutState(outStates[preds[0].Source], preds[0]);
         for (int i = 1; i < preds.Length; i++)
         {
-            state = _lattice.Join(state, outStates[preds[i].Source]);
+            state = _lattice.Join(state, RefineOutState(outStates[preds[i].Source], preds[i]));
         }
 
         return state;
+    }
+
+    private T RefineOutState(T outState, ControlFlowBranch branch)
+    {
+        if (_edgeRefiner is null)
+        {
+            return outState;
+        }
+
+        return _edgeRefiner.Refine(outState, branch);
     }
 
     private bool AreEqual(T left, T right)

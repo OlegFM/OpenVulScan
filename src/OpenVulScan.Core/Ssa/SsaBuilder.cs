@@ -114,6 +114,18 @@ public static class SsaBuilder
             allVersionsImmutable);
     }
 
+    private static void RegisterDef(
+        IOperation op,
+        TrackedKey key,
+        Dictionary<TrackedKey, SsaId> current,
+        Func<TrackedKey, SsaId> newVersion,
+        ImmutableDictionary<IOperation, SsaId>.Builder definitions)
+    {
+        var id = newVersion(key);
+        current[key] = id;
+        definitions[op] = id;
+    }
+
     private static void ProcessOperation(
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
@@ -125,38 +137,45 @@ public static class SsaBuilder
         {
             case IVariableDeclaratorOperation { Symbol: ILocalSymbol local }:
             {
-                var key = new TrackedKey.Symbol(local);
-                var id = newVersion(key);
-                current[key] = id;
-                definitions[op] = id;
+                RegisterDef(op, new TrackedKey.Symbol(local), current, newVersion, definitions);
                 break;
             }
             case ISimpleAssignmentOperation { Target: ILocalReferenceOperation lrefTarget }:
             {
-                var key = new TrackedKey.Symbol(lrefTarget.Local);
-                var id = newVersion(key);
-                current[key] = id;
-                definitions[op] = id;
+                RegisterDef(op, new TrackedKey.Symbol(lrefTarget.Local), current, newVersion, definitions);
                 break;
             }
             case ISimpleAssignmentOperation { Target: IParameterReferenceOperation prefTarget }:
             {
-                var key = new TrackedKey.Symbol(prefTarget.Parameter);
-                var id = newVersion(key);
-                current[key] = id;
-                definitions[op] = id;
+                RegisterDef(op, new TrackedKey.Symbol(prefTarget.Parameter), current, newVersion, definitions);
                 break;
             }
             case ICompoundAssignmentOperation { Target: ILocalReferenceOperation lrefCompound }:
             {
-                var key = new TrackedKey.Symbol(lrefCompound.Local);
-                var id = newVersion(key);
-                current[key] = id;
-                definitions[op] = id;
+                RegisterDef(op, new TrackedKey.Symbol(lrefCompound.Local), current, newVersion, definitions);
+                break;
+            }
+            case ICompoundAssignmentOperation { Target: IParameterReferenceOperation prefCompound }:
+            {
+                RegisterDef(op, new TrackedKey.Symbol(prefCompound.Parameter), current, newVersion, definitions);
+                break;
+            }
+            case IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lrefIncr }:
+            {
+                RegisterDef(op, new TrackedKey.Symbol(lrefIncr.Local), current, newVersion, definitions);
+                break;
+            }
+            case IIncrementOrDecrementOperation { Target: IParameterReferenceOperation prefIncr }:
+            {
+                RegisterDef(op, new TrackedKey.Symbol(prefIncr.Parameter), current, newVersion, definitions);
                 break;
             }
             case ILocalReferenceOperation lref:
             {
+                // Skip: this lref is the assignment target, not a read.
+                if (lref.Parent is ISimpleAssignmentOperation { Target: var t1 } && ReferenceEquals(t1, lref)) break;
+                if (lref.Parent is ICompoundAssignmentOperation { Target: var t2 } && ReferenceEquals(t2, lref)) break;
+                if (lref.Parent is IIncrementOrDecrementOperation { Target: var t3 } && ReferenceEquals(t3, lref)) break;
                 var key = new TrackedKey.Symbol(lref.Local);
                 if (current.TryGetValue(key, out var id))
                     uses[(op, key)] = id;
@@ -164,6 +183,10 @@ public static class SsaBuilder
             }
             case IParameterReferenceOperation pref:
             {
+                // Skip: this pref is the assignment target, not a read.
+                if (pref.Parent is ISimpleAssignmentOperation { Target: var t1 } && ReferenceEquals(t1, pref)) break;
+                if (pref.Parent is ICompoundAssignmentOperation { Target: var t2 } && ReferenceEquals(t2, pref)) break;
+                if (pref.Parent is IIncrementOrDecrementOperation { Target: var t3 } && ReferenceEquals(t3, pref)) break;
                 var key = new TrackedKey.Symbol(pref.Parameter);
                 if (current.TryGetValue(key, out var id))
                     uses[(op, key)] = id;

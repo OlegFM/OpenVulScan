@@ -13,15 +13,18 @@ public sealed class DataFlowContext
 
     public Compilation Compilation { get; }
 
+    public SsaIndex SsaIndex { get; }
+
     public CancellationToken CancellationToken { get; }
 
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
 
-    public DataFlowContext(IOperation operation, SemanticModel semanticModel, Compilation compilation, CancellationToken cancellationToken)
+    public DataFlowContext(IOperation operation, SemanticModel semanticModel, Compilation compilation, SsaIndex ssaIndex, CancellationToken cancellationToken)
     {
         Operation = operation;
         SemanticModel = semanticModel;
         Compilation = compilation;
+        SsaIndex = ssaIndex;
         CancellationToken = cancellationToken;
     }
 

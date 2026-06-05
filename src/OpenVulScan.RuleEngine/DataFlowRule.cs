@@ -11,6 +11,9 @@ public abstract class DataFlowRule<TLattice>
 
     public virtual IEdgeRefiner<TLattice>? EdgeRefiner => null;
 
+    // Default implementation: ignore SSA (legacy path). Overridden by SSA-aware rules.
+    public virtual ITransfer<TLattice> CreateTransfer(SsaIndex ssaIndex) => Transfer;
+
     protected virtual void OnState(IOperation operation, TLattice state, DataFlowContext context)
     {
     }

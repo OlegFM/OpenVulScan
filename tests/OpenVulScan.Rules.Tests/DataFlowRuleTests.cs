@@ -33,7 +33,7 @@ public class DataFlowRuleTests
         var operation = model.GetOperation(method)!;
         var token = new CancellationToken();
 
-        var context = new DataFlowContext(operation, model, compilation, token);
+        var context = new DataFlowContext(operation, model, compilation, SsaIndex.Empty, token);
 
         Assert.Same(operation, context.Operation);
         Assert.Same(model, context.SemanticModel);
@@ -51,7 +51,7 @@ public class DataFlowRuleTests
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First();
         var operation = model.GetOperation(method)!;
 
-        var context = new DataFlowContext(operation, model, compilation, CancellationToken.None);
+        var context = new DataFlowContext(operation, model, compilation, SsaIndex.Empty, CancellationToken.None);
         var diagnostic = Diagnostic.Create(
             new DiagnosticDescriptor("TEST001", "Test", "Message", "Test", DiagnosticSeverity.Warning, true),
             Location.None);

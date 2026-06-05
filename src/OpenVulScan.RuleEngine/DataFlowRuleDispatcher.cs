@@ -52,7 +52,7 @@ public sealed class DataFlowRuleDispatcher<TLattice>
 
                         foreach (var op in GetAllOperations(block))
                         {
-                            var context = new DataFlowContext(op, model, _compilation, cancellationToken);
+                            var context = new DataFlowContext(op, model, _compilation, SsaIndex.Empty, cancellationToken);
                             rule.InvokeOnState(op, state, context);
                             diagnostics.AddRange(context.Diagnostics);
                             state = rule.Transfer.Apply(state, op);

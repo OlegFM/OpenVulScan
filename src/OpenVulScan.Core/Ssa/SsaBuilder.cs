@@ -163,7 +163,7 @@ public static class SsaBuilder
         return methodSyntax is null ? null : model.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
     }
 
-    private static TrackedKey.Symbol? TryGetDefinitionKey(IOperation op) => op switch
+    private static TrackedKey? TryGetDefinitionKey(IOperation op) => op switch
     {
         IVariableDeclaratorOperation { Symbol: ILocalSymbol local } =>
             new TrackedKey.Symbol(local),
@@ -171,10 +171,18 @@ public static class SsaBuilder
             new TrackedKey.Symbol(lref.Local),
         ISimpleAssignmentOperation { Target: IParameterReferenceOperation pref } =>
             new TrackedKey.Symbol(pref.Parameter),
+        ISimpleAssignmentOperation
+        {
+            Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field }
+        } => new TrackedKey.InstanceField(field),
         ICompoundAssignmentOperation { Target: ILocalReferenceOperation lref } =>
             new TrackedKey.Symbol(lref.Local),
         ICompoundAssignmentOperation { Target: IParameterReferenceOperation pref } =>
             new TrackedKey.Symbol(pref.Parameter),
+        ICompoundAssignmentOperation
+        {
+            Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field2 }
+        } => new TrackedKey.InstanceField(field2),
         IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lref } =>
             new TrackedKey.Symbol(lref.Local),
         IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref } =>
@@ -209,6 +217,18 @@ public static class SsaBuilder
             return;
         }
 
+        // Kill all tracked instance fields when an instance method is invoked (may mutate this.fields).
+        if (IsThisAccessingInvocation(op))
+        {
+            var fieldKeysSnapshot = current.Keys.OfType<TrackedKey.InstanceField>().ToList();
+            foreach (var key in fieldKeysSnapshot)
+            {
+                var id = newVersion(key);
+                current[key] = id;
+            }
+            return;
+        }
+
         // Uses -- with parent guards to skip assignment/increment Targets (phantom-use prevention).
         switch (op)
         {
@@ -234,7 +254,46 @@ public static class SsaBuilder
                     uses[(op, key)] = id;
                 break;
             }
+            case IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field } fref:
+            {
+                // Skip: this fref is the assignment target, not a read.
+                if (fref.Parent is ISimpleAssignmentOperation { Target: var t1 } && ReferenceEquals(t1, fref)) break;
+                if (fref.Parent is ICompoundAssignmentOperation { Target: var t2 } && ReferenceEquals(t2, fref)) break;
+                var key = new TrackedKey.InstanceField(field);
+                if (current.TryGetValue(key, out var id))
+                    uses[(op, key)] = id;
+                break;
+            }
         }
+    }
+
+    private static bool IsThisAccessingInvocation(IOperation op)
+    {
+        if (op is IInvocationOperation inv)
+        {
+            if (inv.TargetMethod.IsStatic)
+            {
+                // Static method without `this` passed as argument → safe.
+                foreach (var arg in inv.Arguments)
+                {
+                    if (arg.Value is IInstanceReferenceOperation)
+                        return true;
+                }
+                return false;
+            }
+            // Instance method: if receiver is `this` or implicit `this`, it can mutate fields.
+            return inv.Instance is IInstanceReferenceOperation or null;
+        }
+        if (op is IObjectCreationOperation create)
+        {
+            foreach (var arg in create.Arguments)
+            {
+                if (arg.Value is IInstanceReferenceOperation)
+                    return true;
+            }
+            return false;
+        }
+        return false;
     }
 
     private static IEnumerable<IOperation> EnumerateBlockOps(BasicBlock block)

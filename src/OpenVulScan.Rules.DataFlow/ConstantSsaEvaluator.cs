@@ -9,10 +9,7 @@ namespace OpenVulScan;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Mirrors the public <see cref="ConstantMapTransfer.EvaluateExpression(IOperation?, ImmutableDictionary{string, ConstantLatticeValue})"/>
-/// helper but reads value bindings through an <see cref="SsaIndex"/> instead of by variable name.
-/// </para>
-/// <para>
+/// Reads value bindings through an <see cref="SsaIndex"/> instead of by variable name.
 /// Shared by SSA-aware rules (V3022, V3063) that need to fold conditions into
 /// concrete <see cref="bool"/> values when all referenced operands are constant.
 /// </para>

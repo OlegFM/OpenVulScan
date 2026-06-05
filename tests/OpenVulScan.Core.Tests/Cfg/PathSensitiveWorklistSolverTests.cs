@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
+using Microsoft.CodeAnalysis.Operations;
 using Xunit;
 
 namespace OpenVulScan.Tests;
@@ -319,7 +320,7 @@ class C
 }";
         var cfg = CompileAndGetCfg(code);
         var lattice = new MapLattice<string, NullStateLattice, NullState>();
-        var transfer = new NullStateMapTransfer();
+        var transfer = new StringKeyedNullTransfer();
         var solver = new WorklistSolver<ImmutableDictionary<string, NullState>>(lattice, transfer);
 
         var result = solver.Solve(cfg, ImmutableDictionary<string, NullState>.Empty.Add("x", NullState.Unknown));
@@ -360,10 +361,70 @@ class C
         ImmutableDictionary<string, NullState>? initialState = null)
     {
         var lattice = new MapLattice<string, NullStateLattice, NullState>();
-        var transfer = new NullStateMapTransfer();
+        var transfer = new StringKeyedNullTransfer();
         var edgeRefiner = new NullStateEdgeRefiner();
         var solver = new WorklistSolver<ImmutableDictionary<string, NullState>>(lattice, transfer, edgeRefiner);
         return solver.Solve(cfg, initialState ?? ImmutableDictionary<string, NullState>.Empty.Add("x", NullState.Unknown));
+    }
+
+    /// <summary>
+    /// Minimal string-keyed null-state transfer used only in worklist solver tests.
+    /// Replaces the deleted NullStateMapTransfer production class.
+    /// </summary>
+    private sealed class StringKeyedNullTransfer : ITransfer<ImmutableDictionary<string, NullState>>
+    {
+        public ImmutableDictionary<string, NullState> Apply(
+            ImmutableDictionary<string, NullState> state, IOperation operation)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ArgumentNullException.ThrowIfNull(operation);
+
+            switch (operation)
+            {
+                case ISimpleAssignmentOperation { Target: ILocalReferenceOperation localRef } assignment:
+                    return state.SetItem(localRef.Local.Name, Evaluate(assignment.Value, state));
+
+                case ISimpleAssignmentOperation { Target: IParameterReferenceOperation paramRef } assignment:
+                    return state.SetItem(paramRef.Parameter.Name, Evaluate(assignment.Value, state));
+
+                case IVariableDeclaratorOperation { Symbol: ILocalSymbol local } varDecl:
+                    var init = varDecl.Initializer is not null
+                        ? Evaluate(varDecl.Initializer.Value, state)
+                        : NullState.Unknown;
+                    return state.SetItem(local.Name, init);
+            }
+
+            return state;
+        }
+
+        public ImmutableDictionary<string, NullState> Apply(
+            ImmutableDictionary<string, NullState> state, BasicBlock block)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ArgumentNullException.ThrowIfNull(block);
+
+            var result = state;
+            foreach (var op in block.Operations)
+                result = Apply(result, op);
+            if (block.BranchValue is not null)
+                result = Apply(result, block.BranchValue);
+            return result;
+        }
+
+        private static NullState Evaluate(IOperation? op, ImmutableDictionary<string, NullState> state) =>
+            op switch
+            {
+                null => NullState.Unknown,
+                ILiteralOperation lit when lit.ConstantValue.Value is null => NullState.DefinitelyNull,
+                ILiteralOperation => NullState.NotNull,
+                ILocalReferenceOperation lref => state.TryGetValue(lref.Local.Name, out var s) ? s : NullState.Unknown,
+                IParameterReferenceOperation pref => state.TryGetValue(pref.Parameter.Name, out var s) ? s : NullState.Unknown,
+                IObjectCreationOperation => NullState.NotNull,
+                IArrayCreationOperation => NullState.NotNull,
+                IConversionOperation conv => Evaluate(conv.Operand, state),
+                IParenthesizedOperation paren => Evaluate(paren.Operand, state),
+                _ => NullState.Unknown,
+            };
     }
 
     private static BasicBlock? FindThenBlock(ControlFlowGraph cfg)

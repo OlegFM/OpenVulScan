@@ -14,13 +14,8 @@ namespace OpenVulScan;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the SSA-aware counterpart of <see cref="NullStateMapTransfer"/>.
-/// It keys state by <see cref="SsaId"/> instead of variable name, enabling
+/// Keys state by <see cref="SsaId"/> instead of variable name, enabling
 /// precise value tracking across def-use chains and phi functions at join points.
-/// </para>
-/// <para>
-/// The legacy <see cref="NullStateMapTransfer"/> (string-keyed) remains in place
-/// until Task 19 removes it. This class is additive only.
 /// </para>
 /// </remarks>
 public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, NullState>>

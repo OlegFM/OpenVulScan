@@ -20,9 +20,6 @@ public sealed class V3022AlwaysTrueFalse : DataFlowRule<ImmutableDictionary<SsaI
     public override ILattice<ImmutableDictionary<SsaId, ConstantLatticeValue>> Lattice { get; }
         = new MapLattice<SsaId, ConstantLattice, ConstantLatticeValue>();
 
-    public override ITransfer<ImmutableDictionary<SsaId, ConstantLatticeValue>> Transfer
-        => throw new InvalidOperationException("Use CreateTransfer(SsaIndex) instead.");
-
     public override ITransfer<ImmutableDictionary<SsaId, ConstantLatticeValue>> CreateTransfer(SsaIndex ssaIndex)
         => new ConstantSsaTransfer(ssaIndex);
 

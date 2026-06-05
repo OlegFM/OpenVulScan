@@ -7,7 +7,8 @@ public abstract class DataFlowRule<TLattice>
 {
     public abstract ILattice<TLattice> Lattice { get; }
 
-    public abstract ITransfer<TLattice> Transfer { get; }
+    public virtual ITransfer<TLattice> Transfer
+        => throw new NotSupportedException("Override CreateTransfer(SsaIndex) instead.");
 
     public virtual IEdgeRefiner<TLattice>? EdgeRefiner => null;
 

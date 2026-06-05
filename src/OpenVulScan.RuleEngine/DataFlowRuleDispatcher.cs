@@ -39,10 +39,12 @@ public sealed class DataFlowRuleDispatcher<TLattice>
                 }
 
                 var cfg = ControlFlowGraph.Create(methodBody, cancellationToken);
+                var ssaIndex = SsaBuilder.Build(cfg, model);
 
                 foreach (var rule in _rules)
                 {
-                    var solver = new WorklistSolver<TLattice>(rule.Lattice, rule.Transfer, rule.EdgeRefiner);
+                    var transfer = rule.CreateTransfer(ssaIndex);
+                    var solver = new WorklistSolver<TLattice>(rule.Lattice, transfer, rule.EdgeRefiner);
                     var result = solver.Solve(cfg, cancellationToken);
 
                     foreach (var block in cfg.Blocks)
@@ -52,10 +54,10 @@ public sealed class DataFlowRuleDispatcher<TLattice>
 
                         foreach (var op in GetAllOperations(block))
                         {
-                            var context = new DataFlowContext(op, model, _compilation, SsaIndex.Empty, cancellationToken);
+                            var context = new DataFlowContext(op, model, _compilation, ssaIndex, cancellationToken);
                             rule.InvokeOnState(op, state, context);
                             diagnostics.AddRange(context.Diagnostics);
-                            state = rule.Transfer.Apply(state, op);
+                            state = transfer.Apply(state, op);
                         }
                     }
                 }

@@ -54,6 +54,18 @@ public static class SsaBuilder
             return id;
         }
 
+        SsaId AllocateExplicit(TrackedKey key, int version)
+        {
+            var id = new SsaId(key, version);
+            if (!allVersions.TryGetValue(key, out var list))
+            {
+                list = new List<SsaId>();
+                allVersions[key] = list;
+            }
+            if (!list.Contains(id)) list.Add(id);
+            return id;
+        }
+
         var blockOut = new Dictionary<BasicBlock, Dictionary<TrackedKey, SsaId>>();
         var phisToBind = new List<(BasicBlock Block, TrackedKey Key, SsaId Result)>();
 
@@ -106,7 +118,7 @@ public static class SsaBuilder
 
             foreach (var op in EnumerateBlockOps(block))
             {
-                ProcessOperation(op, current, NewVersion, definitions, uses);
+                ProcessOperation(op, current, NewVersion, AllocateExplicit, definitions, uses);
             }
 
             blockOut[block] = current;
@@ -206,9 +218,21 @@ public static class SsaBuilder
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
+        Func<TrackedKey, int, SsaId> allocateExplicit,
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
         ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
     {
+        // Flow captures: Roslyn's built-in SSA temporaries — always version 0,
+        // never go through NewVersion (they are single-assignment by Roslyn's guarantee).
+        if (op is IFlowCaptureOperation flow)
+        {
+            var captureKey = new TrackedKey.Capture(flow.Id);
+            var captureId = allocateExplicit(captureKey, 0);
+            current[captureKey] = captureId;
+            definitions[op] = captureId;
+            return;
+        }
+
         // Defs (unified through TryGetDefinitionKey + RegisterDef).
         var defKey = TryGetDefinitionKey(op);
         if (defKey is not null)
@@ -260,6 +284,14 @@ public static class SsaBuilder
                 if (fref.Parent is ISimpleAssignmentOperation { Target: var t1 } && ReferenceEquals(t1, fref)) break;
                 if (fref.Parent is ICompoundAssignmentOperation { Target: var t2 } && ReferenceEquals(t2, fref)) break;
                 var key = new TrackedKey.InstanceField(field);
+                if (current.TryGetValue(key, out var id))
+                    uses[(op, key)] = id;
+                break;
+            }
+            case IFlowCaptureReferenceOperation flowRef:
+            {
+                // No parent guard needed — captures are never assignment targets.
+                var key = new TrackedKey.Capture(flowRef.Id);
                 if (current.TryGetValue(key, out var id))
                     uses[(op, key)] = id;
                 break;

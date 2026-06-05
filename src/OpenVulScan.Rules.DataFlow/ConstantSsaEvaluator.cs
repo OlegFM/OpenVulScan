@@ -48,14 +48,6 @@ internal static class ConstantSsaEvaluator
             case IFieldReferenceOperation { Instance: IInstanceReferenceOperation } fieldRef:
                 return Lookup(fieldRef, new TrackedKey.InstanceField(fieldRef.Field), state, ssa);
 
-            case IConversionOperation conv:
-                // Strip conversion without converting the value: this matches
-                // ConstantSsaTransfer.Evaluate, which stores raw (unconverted) values
-                // in the SSA-keyed state. Mixing conversion strategies here would
-                // produce type-mismatched (int, uint) operand pairs that arithmetic
-                // cannot dispatch on.
-                return Evaluate(conv.Operand, state, ssa);
-
             case IBinaryOperation binary:
                 return EvaluateBinary(binary, state, ssa);
 
@@ -76,12 +68,14 @@ internal static class ConstantSsaEvaluator
         var use = ssa.UseAt(operation, key);
         if (use is null)
         {
-            return ConstantLatticeValue.Bottom;
+            // Variable exists but has no SSA definition at this point — value is unknown (Top).
+            return ConstantLatticeValue.Top;
         }
 
         return state.TryGetValue(use.Value, out var value)
             ? value
-            : ConstantLatticeValue.Bottom;
+            // SSA definition exists but its constant value is not yet computed — unknown (Top).
+            : ConstantLatticeValue.Top;
     }
 
     private static ConstantLatticeValue EvaluateBinary(
@@ -130,6 +124,12 @@ internal static class ConstantSsaEvaluator
         {
             return ConstantLatticeValue.Bottom;
         }
+        catch (NotSupportedException)
+        {
+            // Arithmetic/bitwise helpers throw NotSupportedException for unsupported
+            // type combinations (e.g. short | int, byte + char). Treat as unknown.
+            return ConstantLatticeValue.Bottom;
+        }
     }
 
     private static ConstantLatticeValue EvaluateUnary(
@@ -165,11 +165,20 @@ internal static class ConstantSsaEvaluator
         {
             return ConstantLatticeValue.Bottom;
         }
+        catch (NotSupportedException)
+        {
+            // BitwiseNot/Arithmetic.Negate throw NotSupportedException for unsupported
+            // types (e.g. ~short). Treat as unknown.
+            return ConstantLatticeValue.Bottom;
+        }
     }
 
     private static IOperation Unwrap(IOperation operation)
     {
-        while (operation is IConversionOperation conv && IsIdentityConversion(conv))
+        // Strip all conversions: ConstantSsaTransfer stores raw (unconverted) values,
+        // so we must not let a conversion wrapper reach the switch. Stripping all
+        // conversions (not just identity ones) keeps Evaluate consistent with Transfer.
+        while (operation is IConversionOperation conv)
         {
             operation = conv.Operand;
         }
@@ -181,9 +190,6 @@ internal static class ConstantSsaEvaluator
 
         return operation;
     }
-
-    private static bool IsIdentityConversion(IConversionOperation conv)
-        => SymbolEqualityComparer.Default.Equals(conv.Type, conv.Operand.Type);
 
     private static object BitwiseOr(object left, object right) => left switch
     {

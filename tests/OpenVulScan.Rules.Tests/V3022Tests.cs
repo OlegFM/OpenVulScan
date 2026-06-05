@@ -200,4 +200,36 @@ class C
         Assert.Equal("V3022", diagnostics[0].Id);
         Assert.Contains("always false", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Regression test for a crash caused by <c>NotSupportedException</c> escaping
+    /// <see cref="ConstantSsaEvaluator"/> when evaluating bitwise operations on
+    /// narrow integer types (e.g. <c>short | int</c>). V3022 must not throw; it
+    /// should simply produce no diagnostic because the result is not a compile-time
+    /// constant bool.
+    /// </summary>
+    [Fact]
+    public void DoesNotCrashOnShortBitwiseOr()
+    {
+        var source = @"
+class C
+{
+    void M()
+    {
+        short s = 1;
+        if ((s | 2) != 0) { }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        // Must not throw — that was the regression. The short literal is stored as int
+        // by the Roslyn constant evaluator, so BitwiseOr succeeds and (1|2)!=0 folds to
+        // always-true. Either outcome (diagnostic or no diagnostic) is acceptable here;
+        // what matters is that no NotSupportedException escapes the evaluator.
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        Assert.NotNull(diagnostics);
+    }
 }

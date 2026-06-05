@@ -16,10 +16,27 @@ public static class SsaBuilder
         ArgumentNullException.ThrowIfNull(cfg);
         ArgumentNullException.ThrowIfNull(model);
 
+        // --------- Pass 1: collect def-sites and globals ---------
+        var defSites = new Dictionary<TrackedKey, int>();
+
+        foreach (var block in cfg.Blocks)
+        {
+            foreach (var op in EnumerateBlockOps(block))
+            {
+                var key = TryGetDefinitionKey(op);
+                if (key is null) continue;
+                defSites[key] = defSites.GetValueOrDefault(key, 0) + 1;
+            }
+        }
+
+        // Globals: keys with >=2 def-sites (semi-pruned criterion).
+        var globals = new HashSet<TrackedKey>(defSites.Where(kv => kv.Value >= 2).Select(kv => kv.Key));
+
+        // --------- Pass 2: versioning + phi placement ---------
         var definitions = ImmutableDictionary.CreateBuilder<IOperation, SsaId>();
         var uses = ImmutableDictionary.CreateBuilder<(IOperation, TrackedKey), SsaId>();
         var entryVersions = ImmutableDictionary.CreateBuilder<BasicBlock, ImmutableDictionary<TrackedKey, SsaId>>();
-        var phis = ImmutableDictionary.CreateBuilder<BasicBlock, ImmutableArray<Phi>>();
+        var phisBuilder = ImmutableDictionary.CreateBuilder<BasicBlock, ImmutableArray<Phi>>();
         var allVersions = new Dictionary<TrackedKey, List<SsaId>>();
 
         var nextVersion = new Dictionary<TrackedKey, int>();
@@ -37,69 +54,88 @@ public static class SsaBuilder
             return id;
         }
 
-        // Pass 0: define parameters at entry block, version 0.
-        var current = new Dictionary<TrackedKey, SsaId>();
+        var blockOut = new Dictionary<BasicBlock, Dictionary<TrackedKey, SsaId>>();
+        var phisToBind = new List<(BasicBlock Block, TrackedKey Key, SsaId Result)>();
+
         var entryBlock = cfg.Blocks.First(b => b.Kind == BasicBlockKind.Entry);
+        var current = new Dictionary<TrackedKey, SsaId>();
 
-        var methodDecl = model.SyntaxTree.GetRoot()
-            .DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault();
-
-        if (methodDecl is not null)
+        // Pass 0: define parameters at entry block, version 0.
+        var methodSymbol = TryGetMethodSymbol(model);
+        if (methodSymbol is not null)
         {
-            var methodSymbol = model.GetDeclaredSymbol(methodDecl) as IMethodSymbol;
-            if (methodSymbol is not null)
+            foreach (var p in methodSymbol.Parameters)
             {
-                foreach (var p in methodSymbol.Parameters)
-                {
-                    var key = new TrackedKey.Symbol(p);
-                    var id = NewVersion(key);
-                    current[key] = id;
-                }
+                var key = new TrackedKey.Symbol(p);
+                var id = NewVersion(key);
+                current[key] = id;
             }
         }
 
         entryVersions[entryBlock] = ImmutableDictionary.CreateRange(current);
-
-        // Pass 1+2: visit blocks in CFG order.
-        // φ handling (multi-predecessor blocks) is added in Task 7.
-        var blockOutState = new Dictionary<BasicBlock, Dictionary<TrackedKey, SsaId>>
-        {
-            [entryBlock] = new Dictionary<TrackedKey, SsaId>(current),
-        };
+        blockOut[entryBlock] = current;
 
         foreach (var block in cfg.Blocks)
         {
             if (block.Kind == BasicBlockKind.Entry) continue;
 
-            // Single-predecessor: inherit out-state. Multi-predecessor: start empty (Task 7 adds φ).
-            if (block.Predecessors.Length == 1
-                && blockOutState.TryGetValue(block.Predecessors[0].Source, out var predOut))
+            current = [];
+            var blockPhis = ImmutableArray.CreateBuilder<Phi>();
+
+            if (block.Predecessors.Length >= 2)
+            {
+                foreach (var key in globals)
+                {
+                    var result = NewVersion(key);
+                    current[key] = result;
+                    blockPhis.Add(new Phi(result, []));
+                    phisToBind.Add((block, key, result));
+                }
+            }
+            else if (block.Predecessors.Length == 1
+                     && blockOut.TryGetValue(block.Predecessors[0].Source, out var predOut))
             {
                 current = new Dictionary<TrackedKey, SsaId>(predOut);
             }
-            else
-            {
-                current = [];
-            }
 
             entryVersions[block] = ImmutableDictionary.CreateRange(current);
+            if (blockPhis.Count > 0)
+            {
+                phisBuilder[block] = blockPhis.ToImmutable();
+            }
 
-            foreach (var op in block.Operations.SelectMany(EnumerateAllOps))
+            foreach (var op in EnumerateBlockOps(block))
             {
                 ProcessOperation(op, current, NewVersion, definitions, uses);
             }
 
-            if (block.BranchValue is not null)
-            {
-                foreach (var op in EnumerateAllOps(block.BranchValue))
-                {
-                    ProcessOperation(op, current, NewVersion, definitions, uses);
-                }
-            }
+            blockOut[block] = current;
+        }
 
-            blockOutState[block] = current;
+        // --------- Pass 3: bind phi operands ---------
+        if (phisToBind.Count > 0)
+        {
+            var grouped = phisToBind.GroupBy(t => t.Block);
+            foreach (var group in grouped)
+            {
+                var block = group.Key;
+                var bound = ImmutableArray.CreateBuilder<Phi>();
+                foreach (var (_, key, result) in group)
+                {
+                    var operands = ImmutableArray.CreateBuilder<PhiOperand>();
+                    foreach (var predBranch in block.Predecessors)
+                    {
+                        var predBlock = predBranch.Source;
+                        if (blockOut.TryGetValue(predBlock, out var predOut)
+                            && predOut.TryGetValue(key, out var predVersion))
+                        {
+                            operands.Add(new PhiOperand(predBlock, predVersion));
+                        }
+                    }
+                    bound.Add(new Phi(result, operands.ToImmutable()));
+                }
+                phisBuilder[block] = bound.ToImmutable();
+            }
         }
 
         var allVersionsImmutable = allVersions.ToImmutableDictionary(
@@ -110,9 +146,41 @@ public static class SsaBuilder
             definitions.ToImmutable(),
             uses.ToImmutable(),
             entryVersions.ToImmutable(),
-            phis.ToImmutable(),
+            phisBuilder.ToImmutable(),
             allVersionsImmutable);
     }
+
+    // --- helpers ---
+
+    private static IMethodSymbol? TryGetMethodSymbol(SemanticModel model)
+    {
+        // Same heuristic used in Task 6: pick the first method declaration in the syntax tree.
+        // Snippets used by the test harness contain a single method; this is sufficient for now.
+        var methodSyntax = model.SyntaxTree.GetRoot()
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault();
+        return methodSyntax is null ? null : model.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
+    }
+
+    private static TrackedKey.Symbol? TryGetDefinitionKey(IOperation op) => op switch
+    {
+        IVariableDeclaratorOperation { Symbol: ILocalSymbol local } =>
+            new TrackedKey.Symbol(local),
+        ISimpleAssignmentOperation { Target: ILocalReferenceOperation lref } =>
+            new TrackedKey.Symbol(lref.Local),
+        ISimpleAssignmentOperation { Target: IParameterReferenceOperation pref } =>
+            new TrackedKey.Symbol(pref.Parameter),
+        ICompoundAssignmentOperation { Target: ILocalReferenceOperation lref } =>
+            new TrackedKey.Symbol(lref.Local),
+        ICompoundAssignmentOperation { Target: IParameterReferenceOperation pref } =>
+            new TrackedKey.Symbol(pref.Parameter),
+        IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lref } =>
+            new TrackedKey.Symbol(lref.Local),
+        IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref } =>
+            new TrackedKey.Symbol(pref.Parameter),
+        _ => null,
+    };
 
     private static void RegisterDef(
         IOperation op,
@@ -133,43 +201,17 @@ public static class SsaBuilder
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
         ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
     {
+        // Defs (unified through TryGetDefinitionKey + RegisterDef).
+        var defKey = TryGetDefinitionKey(op);
+        if (defKey is not null)
+        {
+            RegisterDef(op, defKey, current, newVersion, definitions);
+            return;
+        }
+
+        // Uses -- with parent guards to skip assignment/increment Targets (phantom-use prevention).
         switch (op)
         {
-            case IVariableDeclaratorOperation { Symbol: ILocalSymbol local }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(local), current, newVersion, definitions);
-                break;
-            }
-            case ISimpleAssignmentOperation { Target: ILocalReferenceOperation lrefTarget }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(lrefTarget.Local), current, newVersion, definitions);
-                break;
-            }
-            case ISimpleAssignmentOperation { Target: IParameterReferenceOperation prefTarget }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(prefTarget.Parameter), current, newVersion, definitions);
-                break;
-            }
-            case ICompoundAssignmentOperation { Target: ILocalReferenceOperation lrefCompound }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(lrefCompound.Local), current, newVersion, definitions);
-                break;
-            }
-            case ICompoundAssignmentOperation { Target: IParameterReferenceOperation prefCompound }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(prefCompound.Parameter), current, newVersion, definitions);
-                break;
-            }
-            case IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lrefIncr }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(lrefIncr.Local), current, newVersion, definitions);
-                break;
-            }
-            case IIncrementOrDecrementOperation { Target: IParameterReferenceOperation prefIncr }:
-            {
-                RegisterDef(op, new TrackedKey.Symbol(prefIncr.Parameter), current, newVersion, definitions);
-                break;
-            }
             case ILocalReferenceOperation lref:
             {
                 // Skip: this lref is the assignment target, not a read.
@@ -192,6 +234,20 @@ public static class SsaBuilder
                     uses[(op, key)] = id;
                 break;
             }
+        }
+    }
+
+    private static IEnumerable<IOperation> EnumerateBlockOps(BasicBlock block)
+    {
+        foreach (var op in block.Operations)
+        {
+            foreach (var d in EnumerateAllOps(op))
+                yield return d;
+        }
+        if (block.BranchValue is not null)
+        {
+            foreach (var d in EnumerateAllOps(block.BranchValue))
+                yield return d;
         }
     }
 

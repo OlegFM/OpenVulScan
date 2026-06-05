@@ -19,12 +19,23 @@ class C
         x = 1;
     }
 }");
-        var local = model.Compilation.SyntaxTrees.First().GetRoot()
-            .DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
-        var symbol = model.GetDeclaredSymbol(local)!;
+        var root = model.Compilation.SyntaxTrees.First().GetRoot();
 
-        var k1 = new TrackedKey.Symbol(symbol);
-        var k2 = new TrackedKey.Symbol(symbol);
+        // Resolve the symbol via the declaration site.
+        var declarator = root.DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .First(v => v.Identifier.Text == "x");
+        var symbolFromDecl = (ISymbol)model.GetDeclaredSymbol(declarator)!;
+
+        // Resolve the same symbol via a reference site (the assignment target).
+        var refNode = root.DescendantNodes()
+            .OfType<IdentifierNameSyntax>()
+            .First(n => n.Identifier.Text == "x"
+                && n.Parent is AssignmentExpressionSyntax);
+        var symbolFromRef = model.GetSymbolInfo(refNode).Symbol!;
+
+        var k1 = new TrackedKey.Symbol(symbolFromDecl);
+        var k2 = new TrackedKey.Symbol(symbolFromRef);
 
         Assert.Equal(k1, k2);
         Assert.Equal(k1.GetHashCode(), k2.GetHashCode());
@@ -42,12 +53,16 @@ class C
         int x = 0;
     }
 }");
-        var local = model.Compilation.SyntaxTrees.First().GetRoot()
-            .DescendantNodes().OfType<VariableDeclaratorSyntax>().First();
-        var localSymbol = (ISymbol)model.GetDeclaredSymbol(local)!;
+        var root = model.Compilation.SyntaxTrees.First().GetRoot();
+
+        // Pick the local 'x' by name so we don't accidentally grab the field declarator 'f'.
+        var localDeclarator = root.DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .First(v => v.Identifier.Text == "x");
+        var localSymbol = (ILocalSymbol)model.GetDeclaredSymbol(localDeclarator)!;
         var field = (IFieldSymbol)model.Compilation.GetTypeByMetadataName("C")!.GetMembers("f").First();
 
-        TrackedKey k1 = new TrackedKey.Symbol(localSymbol);
+        TrackedKey k1 = new TrackedKey.Symbol((ISymbol)localSymbol);
         TrackedKey k2 = new TrackedKey.InstanceField(field);
 
         Assert.NotEqual(k1, k2);

@@ -34,7 +34,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -58,7 +58,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -81,7 +81,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -105,7 +105,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -128,7 +128,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -151,7 +151,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
@@ -172,7 +172,7 @@ class C
 }";
         var compilation = CreateTestCompilation(source);
         var rule = new V3063PartialAlwaysTrueFalse();
-        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<string, ConstantLatticeValue>>(new[] { rule }, compilation);
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 

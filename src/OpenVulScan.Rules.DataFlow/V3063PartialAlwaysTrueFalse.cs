@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Operations;
 namespace OpenVulScan;
 
 [Rule("V3063", RuleSeverity.Level1, "CWE-571", RuleCategory.GeneralAnalysis, AnalysisCapability.DataFlow)]
-public sealed class V3063PartialAlwaysTrueFalse : DataFlowRule<ImmutableDictionary<string, ConstantLatticeValue>>
+public sealed class V3063PartialAlwaysTrueFalse : DataFlowRule<ImmutableDictionary<SsaId, ConstantLatticeValue>>
 {
     private static readonly DiagnosticDescriptor s_descriptor = new(
         "V3063",
@@ -17,16 +17,16 @@ public sealed class V3063PartialAlwaysTrueFalse : DataFlowRule<ImmutableDictiona
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    private static readonly ConstantMapTransfer s_transfer = new();
-    private static readonly ConstantEdgeRefiner s_edgeRefiner = new();
+    public override ILattice<ImmutableDictionary<SsaId, ConstantLatticeValue>> Lattice { get; }
+        = new MapLattice<SsaId, ConstantLattice, ConstantLatticeValue>();
 
-    public override ILattice<ImmutableDictionary<string, ConstantLatticeValue>> Lattice { get; } = new MapLattice<string, ConstantLattice, ConstantLatticeValue>();
+    public override ITransfer<ImmutableDictionary<SsaId, ConstantLatticeValue>> Transfer
+        => throw new InvalidOperationException("Use CreateTransfer(SsaIndex) instead.");
 
-    public override ITransfer<ImmutableDictionary<string, ConstantLatticeValue>> Transfer => s_transfer;
+    public override ITransfer<ImmutableDictionary<SsaId, ConstantLatticeValue>> CreateTransfer(SsaIndex ssaIndex)
+        => new ConstantSsaTransfer(ssaIndex);
 
-    public override IEdgeRefiner<ImmutableDictionary<string, ConstantLatticeValue>>? EdgeRefiner => s_edgeRefiner;
-
-    protected override void OnState(IOperation operation, ImmutableDictionary<string, ConstantLatticeValue> state, DataFlowContext context)
+    protected override void OnState(IOperation operation, ImmutableDictionary<SsaId, ConstantLatticeValue> state, DataFlowContext context)
     {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(state);
@@ -37,7 +37,7 @@ public sealed class V3063PartialAlwaysTrueFalse : DataFlowRule<ImmutableDictiona
             return;
         }
 
-        var value = ConstantMapTransfer.EvaluateExpression(operation, state);
+        var value = ConstantSsaEvaluator.Evaluate(operation, state, context.SsaIndex);
 
         if (value.Kind == LatticeElementKind.Const && value.Value is bool boolValue)
         {

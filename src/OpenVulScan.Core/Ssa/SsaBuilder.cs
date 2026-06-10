@@ -199,6 +199,7 @@ public static class SsaBuilder
             new TrackedKey.Symbol(lref.Local),
         IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref } =>
             new TrackedKey.Symbol(pref.Parameter),
+        IFlowCaptureOperation capture => new TrackedKey.Capture(capture.Id),
         _ => null,
     };
 
@@ -242,12 +243,13 @@ public static class SsaBuilder
         }
 
         // Flow captures: the captured expression is evaluated first, then the
-        // capture binds. Always version 0 (single-assignment by Roslyn's guarantee).
+        // capture binds. Use newVersion so that multi-def captures (e.g. both
+        // arms of `??` or `?:`) get distinct SSA versions enabling phi placement.
         if (op is IFlowCaptureOperation flow)
         {
             WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
             var captureKey = new TrackedKey.Capture(flow.Id);
-            var captureId = allocateExplicit(captureKey, 0);
+            var captureId = newVersion(captureKey);
             current[captureKey] = captureId;
             definitions[op] = captureId;
             return;

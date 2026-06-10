@@ -44,6 +44,7 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
             IVariableDeclaratorOperation { Initializer: { } init } => Evaluate(init.Value, state),
             ISimpleAssignmentOperation assignment => Evaluate(assignment.Value, state),
             ICompoundAssignmentOperation => NullState.Unknown,
+            IFlowCaptureOperation capture => Evaluate(capture.Value, state),
             _ => NullState.Unknown,
         };
         return state.SetItem(def.Value, valueState);
@@ -100,6 +101,8 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
             IArrayCreationOperation => NullState.NotNull,
             IConversionOperation conv => Evaluate(conv.Operand, state),
             IParenthesizedOperation paren => Evaluate(paren.Operand, state),
+            IFlowCaptureReferenceOperation cref =>
+                Lookup(cref, new TrackedKey.Capture(cref.Id), state),
             _ => NullState.Unknown,
         };
     }

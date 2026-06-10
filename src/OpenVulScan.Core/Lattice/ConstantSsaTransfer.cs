@@ -43,6 +43,7 @@ public sealed class ConstantSsaTransfer : ITransfer<ImmutableDictionary<SsaId, C
         {
             IVariableDeclaratorOperation { Initializer: { } init } => Evaluate(init.Value, state),
             ISimpleAssignmentOperation assignment => Evaluate(assignment.Value, state),
+            IFlowCaptureOperation capture => Evaluate(capture.Value, state),
             _ => ConstantLatticeValue.Top,
         };
         return state.SetItem(def.Value, value);
@@ -91,6 +92,8 @@ public sealed class ConstantSsaTransfer : ITransfer<ImmutableDictionary<SsaId, C
                 Lookup(fref, new TrackedKey.InstanceField(fref.Field), state),
             IConversionOperation conv => Evaluate(conv.Operand, state),
             IParenthesizedOperation paren => Evaluate(paren.Operand, state),
+            IFlowCaptureReferenceOperation cref =>
+                Lookup(cref, new TrackedKey.Capture(cref.Id), state),
             _ => ConstantLatticeValue.Top,
         };
     }

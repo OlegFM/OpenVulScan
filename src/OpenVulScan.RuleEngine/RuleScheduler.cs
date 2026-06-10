@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace OpenVulScan;
@@ -114,6 +113,10 @@ public sealed class RuleScheduler
             list.Add(rule);
         }
 
+        // CONTRACT: DataFlowRuleDispatcher<T> must expose a public
+        // (IEnumerable<DataFlowRule<T>>, Compilation) ctor and a single public
+        // Run(CancellationToken) method. Changing either breaks this reflective
+        // binding at runtime (MissingMethod/AmbiguousMatch), not at compile time.
         var dispatcherType = typeof(DataFlowRuleDispatcher<>).MakeGenericType(stateType);
         try
         {

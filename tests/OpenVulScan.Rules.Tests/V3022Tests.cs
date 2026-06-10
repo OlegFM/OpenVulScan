@@ -232,4 +232,33 @@ class C
 
         Assert.NotNull(diagnostics);
     }
+
+    [Fact]
+    public void CrossBranchInvariantDetected()
+    {
+        var source = @"
+class C
+{
+    void M(bool c)
+    {
+        int x = 5;
+        if (c)
+        {
+            x = 5;
+        }
+        if (x == 5) { }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        // x is 5 on both paths into the join; the φ-join is Const(5), so
+        // `x == 5` is always true. Requires φ-results to be visible to rules.
+        Assert.Contains(diagnostics, d =>
+            d.Id == "V3022" &&
+            d.GetMessage(CultureInfo.InvariantCulture).Contains("always true", StringComparison.Ordinal));
+    }
 }

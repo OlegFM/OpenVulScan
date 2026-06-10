@@ -57,7 +57,26 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(block);
 
-        // Apply phi functions on block entry first: join predecessor states.
+        state = ApplyPhis(state, block);
+
+        foreach (var op in block.Operations.SelectMany(EnumerateOps))
+            state = Apply(state, op);
+
+        if (block.BranchValue is not null)
+            foreach (var op in EnumerateOps(block.BranchValue))
+                state = Apply(state, op);
+
+        return state;
+    }
+
+    /// <inheritdoc />
+    public ImmutableDictionary<SsaId, NullState> ApplyPhis(
+        ImmutableDictionary<SsaId, NullState> state, BasicBlock block)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(block);
+
+        // Join predecessor states into each φ-result on block entry.
         foreach (var phi in _ssa.PhisAt(block))
         {
             var joined = NullState.Unknown;
@@ -72,13 +91,6 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
             }
             state = state.SetItem(phi.Result, any ? joined : NullState.Unknown);
         }
-
-        foreach (var op in block.Operations.SelectMany(EnumerateOps))
-            state = Apply(state, op);
-
-        if (block.BranchValue is not null)
-            foreach (var op in EnumerateOps(block.BranchValue))
-                state = Apply(state, op);
 
         return state;
     }

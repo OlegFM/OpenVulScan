@@ -51,6 +51,7 @@ public sealed class DataFlowRuleDispatcher<TLattice>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var state = result.InStates[block];
+                        state = transfer.ApplyPhis(state, block);
 
                         foreach (var op in GetAllOperations(block))
                         {

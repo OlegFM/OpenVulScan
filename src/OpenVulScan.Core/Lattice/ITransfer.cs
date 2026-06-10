@@ -32,4 +32,14 @@ public interface ITransfer<T>
     /// <param name="block">The control-flow basic block to model.</param>
     /// <returns>The lattice state after the basic block.</returns>
     T Apply(T state, BasicBlock block);
+
+    /// <summary>
+    /// Materialises the φ-joins of <paramref name="block"/> into the incoming state.
+    /// Called on block entry, before any operation of the block is applied.
+    /// Non-SSA transfers need no φ handling; the default is the identity.
+    /// </summary>
+    /// <param name="state">The lattice state at block entry (pre-φ).</param>
+    /// <param name="block">The control-flow basic block whose φ-functions to apply.</param>
+    /// <returns>The lattice state with φ-results bound.</returns>
+    T ApplyPhis(T state, BasicBlock block) => state;
 }

@@ -56,7 +56,26 @@ public sealed class ConstantSsaTransfer : ITransfer<ImmutableDictionary<SsaId, C
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(block);
 
-        // Apply phi functions on block entry first: join predecessor states.
+        state = ApplyPhis(state, block);
+
+        foreach (var op in block.Operations.SelectMany(EnumerateOps))
+            state = Apply(state, op);
+
+        if (block.BranchValue is not null)
+            foreach (var op in EnumerateOps(block.BranchValue))
+                state = Apply(state, op);
+
+        return state;
+    }
+
+    /// <inheritdoc />
+    public ImmutableDictionary<SsaId, ConstantLatticeValue> ApplyPhis(
+        ImmutableDictionary<SsaId, ConstantLatticeValue> state, BasicBlock block)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(block);
+
+        // Join predecessor states into each φ-result on block entry.
         foreach (var phi in _ssa.PhisAt(block))
         {
             var joined = ConstantLatticeValue.Bottom;
@@ -67,13 +86,6 @@ public sealed class ConstantSsaTransfer : ITransfer<ImmutableDictionary<SsaId, C
             }
             state = state.SetItem(phi.Result, joined);
         }
-
-        foreach (var op in block.Operations.SelectMany(EnumerateOps))
-            state = Apply(state, op);
-
-        if (block.BranchValue is not null)
-            foreach (var op in EnumerateOps(block.BranchValue))
-                state = Apply(state, op);
 
         return state;
     }

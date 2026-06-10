@@ -147,11 +147,42 @@ class C { void M(string a) { var x = a ?? ""y""; } }");
         var refiner = new NullStateSsaEdgeRefiner(index);
         var seed = ImmutableDictionary<SsaId, NullState>.Empty.SetItem(use.Value, NullState.MaybeNull);
 
-        var refinedConditional = refiner.Refine(seed, branchBlock.ConditionalSuccessor!);
-        var refinedFallThrough = refiner.Refine(seed, branchBlock.FallThroughSuccessor!);
+        // IsNull is true on the null edge: when ConditionKind is WhenTrue the
+        // conditional successor is the null arm, otherwise the fall-through is.
+        var nullEdge = branchBlock.ConditionKind == ControlFlowConditionKind.WhenTrue
+            ? branchBlock.ConditionalSuccessor!
+            : branchBlock.FallThroughSuccessor!;
+        var notNullEdge = ReferenceEquals(nullEdge, branchBlock.ConditionalSuccessor)
+            ? branchBlock.FallThroughSuccessor!
+            : branchBlock.ConditionalSuccessor!;
 
-        var pair = new List<NullState> { refinedConditional[use.Value], refinedFallThrough[use.Value] };
-        Assert.Contains(NullState.DefinitelyNull, pair);
-        Assert.Contains(NullState.NotNull, pair);
+        Assert.Equal(NullState.DefinitelyNull, refiner.Refine(seed, nullEdge)[use.Value]);
+        Assert.Equal(NullState.NotNull, refiner.Refine(seed, notNullEdge)[use.Value]);
+    }
+
+    [Fact]
+    public void EqualsNull_RefinesThenAndElseBranches()
+    {
+        var (cfg, index) = Build(@"
+class C { void M(string a) { string t; string u;
+    if (a == null) { t = a; } else { u = a; } } }");
+
+        var thenState = Solve(cfg, index, BlockDefining(cfg, index, "t"));
+        var elseState = Solve(cfg, index, BlockDefining(cfg, index, "u"));
+
+        Assert.Equal(NullState.DefinitelyNull, StateOfLocalInit(cfg, index, thenState, "t"));
+        Assert.Equal(NullState.NotNull, StateOfLocalInit(cfg, index, elseState, "u"));
+    }
+
+    [Fact]
+    public void ConditionalOr_FalseBranch_RefinesBothOperands()
+    {
+        var (cfg, index) = Build(@"
+class C { void M(string a, string b) { string t;
+    if (a == null || b == null) { } else { t = a; } } }");
+
+        var elseState = Solve(cfg, index, BlockDefining(cfg, index, "t"));
+
+        Assert.Equal(NullState.NotNull, StateOfLocalInit(cfg, index, elseState, "t"));
     }
 }

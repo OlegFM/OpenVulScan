@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: MultiOperand_SecondVariableDerefBeforeCheck_Flags,
+  Source: class C { void M(object a, int[] b) { var r = a != null && b.Length > 0 && b == null; } },
+  Diagnostics: [
+    {
+      Id: V3027,
+      Message: Variable 'b' was used in the logical expression before it was verified against null,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 76,
+        EndLine: 1,
+        EndColumn: 85
+      }
+    }
+  ]
+}

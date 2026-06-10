@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: MemberOfMemberBeforeEqualsNull_Flags,
+  Source: class N { public N b; } class C { void M(N a) { var r = a.b != null && a == null; } },
+  Diagnostics: [
+    {
+      Id: V3027,
+      Message: Variable 'a' was used in the logical expression before it was verified against null,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 72,
+        EndLine: 1,
+        EndColumn: 81
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: InvocationReceiverBeforeNotNull_Flags,
+  Source: class C { void M(object obj) { var r = obj.ToString() != "" && obj != null; } },
+  Diagnostics: [
+    {
+      Id: V3027,
+      Message: Variable 'obj' was used in the logical expression before it was verified against null,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 64,
+        EndLine: 1,
+        EndColumn: 75
+      }
+    }
+  ]
+}

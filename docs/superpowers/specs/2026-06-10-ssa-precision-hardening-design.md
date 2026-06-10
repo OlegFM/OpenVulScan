@@ -80,8 +80,14 @@ In **both** `NullStateSsaTransfer` and `ConstantSsaTransfer`:
   the literal `ovs-tr6` text but is required for the def-side fix to be observable; without
   it the stored value is never consulted.)
 
-`SsaBuilder` already registers capture defs (`AllocateExplicit`, version 0) and capture
-uses (`IFlowCaptureReferenceOperation` case), so no builder change is needed for S-2.
+**Amendment (implementation finding).** The original assumption "captures are
+single-assignment, always version 0" is false: Roslyn assigns the **same** `CaptureId` in
+both arms of `??`/`?:`, so a capture can have ≥2 def-sites. Without φ for captures, the
+binding is lost at the join block and `UseAt` returns null. Therefore S-2 also changes
+`SsaBuilder`: `IFlowCaptureOperation` is an ordinary tracked def (`TryGetDefinitionKey`
+matches it; versions via `NewVersion`; multi-def captures enter the `globals` set and get
+φ at joins). `AllocateExplicit` and the dedicated capture branch in the walk are removed.
+This supersedes the version-0 capture model from the ovs-2qi.9 design.
 
 ### 3.3 S-3 — post-order defs in `SsaBuilder` Pass 2
 
@@ -93,12 +99,9 @@ walk rooted at each top-level operation of the block (`block.Operations` +
 ```
 Walk(op):
   if op is a tracked def (declarator / simple assignment / compound assignment /
-                          increment-decrement with tracked target):
+                          increment-decrement with tracked target / flow capture — see §3.2 amendment):
       foreach child: Walk(child)        // RHS uses old versions; RHS kills happen first
       RegisterDef(op)                   // def AFTER children — assignment semantics
-  else if op is IFlowCaptureOperation:
-      foreach child: Walk(child)        // captured expression first
-      register capture def (version 0)
   else if IsThisAccessingInvocation(op):
       foreach child: Walk(child)        // argument reads use pre-kill versions
       kill all tracked instance fields  // kill AFTER children

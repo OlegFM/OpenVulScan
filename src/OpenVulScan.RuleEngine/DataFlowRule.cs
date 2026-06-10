@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace OpenVulScan;
 
-public abstract class DataFlowRule<TLattice>
+public abstract class DataFlowRule<TLattice> : IDataFlowRule
 {
     public abstract ILattice<TLattice> Lattice { get; }
 

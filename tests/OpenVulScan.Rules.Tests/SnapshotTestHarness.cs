@@ -18,6 +18,7 @@ internal static class SnapshotTestHarness
 
         var registry = new RuleRegistry();
         registry.Scan(typeof(AstRulesPlaceholder).Assembly);
+        registry.Scan(typeof(DataFlowRulesPlaceholder).Assembly);
 
         var scheduler = new RuleScheduler(registry);
         var diagnostics = await scheduler.AnalyzeAsync(compilation, CancellationToken.None).ConfigureAwait(false);

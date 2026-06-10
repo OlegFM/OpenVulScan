@@ -33,8 +33,8 @@ internal static class ConstantSsaEvaluator
 
         switch (operation)
         {
-            case ILiteralOperation literal when literal.ConstantValue.HasValue:
-                return ConstantLatticeValue.Const(literal.ConstantValue.Value!);
+            case ILiteralOperation literal when literal.ConstantValue.HasValue && literal.ConstantValue.Value is not null:
+                return ConstantLatticeValue.Const(literal.ConstantValue.Value);
 
             case ILocalReferenceOperation localRef:
                 return Lookup(localRef, new TrackedKey.Symbol(localRef.Local), state, ssa);

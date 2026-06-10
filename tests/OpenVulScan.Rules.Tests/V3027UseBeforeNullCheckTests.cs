@@ -92,4 +92,11 @@ public class V3027UseBeforeNullCheckTests
         const string source = "class C { void M(int x, int y) { var r = x > 0 && y < 0; } }";
         return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "NoNullsInvolved_DoesNotFlag", source);
     }
+
+    [Fact]
+    public Task IsNotNullGuardBeforeMemberAccessDoesNotFlag()
+    {
+        const string source = "class C { void M(string s) { var r = s is not null && s.Length > 0; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "IsNotNullGuardBeforeMemberAccess_DoesNotFlag", source);
+    }
 }

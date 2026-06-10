@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: IsNotNullGuardBeforeMemberAccess_DoesNotFlag,
+  Source: class C { void M(string s) { var r = s is not null && s.Length > 0; } }
+}

@@ -54,23 +54,21 @@ public class NullStateSsaTransferDefaultValueTests
     }
 
     // ------------------------------------------------------------------
-    // Test 4 – reference-type default: DefinitelyNull
+    // Test 4 – reference-type default: DefinitelyNull (constant-folded)
     // ------------------------------------------------------------------
 
     /// <summary>
     /// <c>string s = default;</c> should cause the SSA version of s to be
     /// <see cref="NullState.DefinitelyNull"/>.
     /// <para>
-    /// Lowering note: the C# compiler may constant-fold <c>default(string)</c>
-    /// to an <c>ILiteralOperation(null)</c> rather than emitting a raw
-    /// <c>IDefaultValueOperation</c>.  We cover both paths: if a
-    /// <c>IDefaultValueOperation</c> appears for s we assert DefinitelyNull
-    /// directly; otherwise we assert DefinitelyNull through the null-literal
-    /// path to ensure the end-to-end result is correct regardless of lowering.
+    /// Lowering note: <c>default</c> on a reference type is constant-folded to a
+    /// null literal by the compiler; this test pins the end-to-end result through
+    /// the literal branch. The <c>IDefaultValueOperation</c> branch is pinned by
+    /// <see cref="DefaultValue_ConditionalAccessNullArm_EvaluatesDefinitelyNull"/>.
     /// </para>
     /// </summary>
     [Fact]
-    public void DefaultValue_ReferenceType_EvaluatesDefinitelyNull()
+    public void DefaultConstantFoldedToNullLiteral_EvaluatesDefinitelyNull()
     {
         var (cfg, model, _) = CfgTestHarness.Compile(@"
 class C

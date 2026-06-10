@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: AndChain_NullCheckBeforeMemberAccess_DoesNotFlag,
+  Source: class C { void M(int[] a) { var r = a != null && a.Length > 0; } }
+}

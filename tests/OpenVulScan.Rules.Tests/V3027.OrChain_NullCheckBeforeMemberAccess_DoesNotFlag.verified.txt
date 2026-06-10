@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: OrChain_NullCheckBeforeMemberAccess_DoesNotFlag,
+  Source: class C { void M(string s) { var r = s == null || s.Length == 0; } }
+}

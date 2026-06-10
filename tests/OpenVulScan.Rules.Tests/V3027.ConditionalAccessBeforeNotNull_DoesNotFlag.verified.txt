@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: ConditionalAccessBeforeNotNull_DoesNotFlag,
+  Source: class C { void M(int[] a) { var r = a?.Length > 0 && a != null; } }
+}

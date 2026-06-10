@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: NoNullsInvolved_DoesNotFlag,
+  Source: class C { void M(int x, int y) { var r = x > 0 && y < 0; } }
+}

@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: TwoNullChecksNoDeref_DoesNotFlag,
+  Source: class C { void M(object a, object b) { var r = a != null && b != null; } }
+}

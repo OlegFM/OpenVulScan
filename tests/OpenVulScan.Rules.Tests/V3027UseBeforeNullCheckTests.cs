@@ -57,4 +57,39 @@ public class V3027UseBeforeNullCheckTests
         const string source = "class C { void M(string s) { var r = s.Length > 0 && s is not null; } }";
         return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "MemberAccessBeforeIsNotNull_Flags", source);
     }
+
+    [Fact]
+    public Task AndChainNullCheckBeforeMemberAccessDoesNotFlag()
+    {
+        const string source = "class C { void M(int[] a) { var r = a != null && a.Length > 0; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "AndChain_NullCheckBeforeMemberAccess_DoesNotFlag", source);
+    }
+
+    [Fact]
+    public Task OrChainNullCheckBeforeMemberAccessDoesNotFlag()
+    {
+        const string source = "class C { void M(string s) { var r = s == null || s.Length == 0; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "OrChain_NullCheckBeforeMemberAccess_DoesNotFlag", source);
+    }
+
+    [Fact]
+    public Task ConditionalAccessBeforeNotNullDoesNotFlag()
+    {
+        const string source = "class C { void M(int[] a) { var r = a?.Length > 0 && a != null; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "ConditionalAccessBeforeNotNull_DoesNotFlag", source);
+    }
+
+    [Fact]
+    public Task TwoNullChecksNoDerefDoesNotFlag()
+    {
+        const string source = "class C { void M(object a, object b) { var r = a != null && b != null; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "TwoNullChecksNoDeref_DoesNotFlag", source);
+    }
+
+    [Fact]
+    public Task NoNullsInvolvedDoesNotFlag()
+    {
+        const string source = "class C { void M(int x, int y) { var r = x > 0 && y < 0; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "NoNullsInvolved_DoesNotFlag", source);
+    }
 }

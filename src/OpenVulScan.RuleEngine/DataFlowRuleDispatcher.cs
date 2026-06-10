@@ -41,24 +41,45 @@ public sealed class DataFlowRuleDispatcher<TLattice>
                 var cfg = ControlFlowGraph.Create(methodBody, cancellationToken);
                 var ssaIndex = SsaBuilder.Build(cfg, model);
 
-                foreach (var rule in _rules)
+                var entries = _rules
+                    .Select(rule => (
+                        Rule: rule,
+                        Transfer: rule.CreateTransfer(ssaIndex),
+                        Refiner: rule.CreateEdgeRefiner(ssaIndex)))
+                    .ToList();
+
+                var groups = entries.GroupBy(e => (
+                    LatticeType: e.Rule.Lattice.GetType(),
+                    TransferType: e.Transfer.GetType(),
+                    RefinerType: e.Refiner?.GetType()));
+
+                foreach (var group in groups)
                 {
-                    var transfer = rule.CreateTransfer(ssaIndex);
-                    var solver = new WorklistSolver<TLattice>(rule.Lattice, transfer, rule.EdgeRefiner);
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Transfers and refiners are stateless apart from the SsaIndex they
+                    // were built over (same per method), so type equality implies
+                    // identical behaviour and one solve serves the whole group.
+                    var first = group.First();
+                    var solver = new WorklistSolver<TLattice>(first.Rule.Lattice, first.Transfer, first.Refiner);
                     var result = solver.Solve(cfg, cancellationToken);
 
                     foreach (var block in cfg.Blocks)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var state = result.InStates[block];
-                        state = transfer.ApplyPhis(state, block);
+                        state = first.Transfer.ApplyPhis(state, block);
 
                         foreach (var op in GetAllOperations(block))
                         {
-                            var context = new DataFlowContext(op, model, _compilation, ssaIndex, cancellationToken);
-                            rule.InvokeOnState(op, state, context);
-                            diagnostics.AddRange(context.Diagnostics);
-                            state = transfer.Apply(state, op);
+                            foreach (var entry in group)
+                            {
+                                var context = new DataFlowContext(op, model, _compilation, ssaIndex, cancellationToken);
+                                entry.Rule.InvokeOnState(op, state, context);
+                                diagnostics.AddRange(context.Diagnostics);
+                            }
+
+                            state = first.Transfer.Apply(state, op);
                         }
                     }
                 }

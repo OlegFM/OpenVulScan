@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_conditional_invocation,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    Task F() => Task.CompletedTask;
+    async Task M(C a)
+    {
+        await a?.F();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3168,
+      Message: Awaiting on expression with potential null value can lead to throwing of 'NullReferenceException',
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 9,
+        EndLine: 8,
+        EndColumn: 21
+      }
+    }
+  ]
+}

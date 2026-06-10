@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_fresh_task_silent,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    async Task M()
+    {
+        await Task.CompletedTask;
+    }
+}
+}

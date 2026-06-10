@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_checked_task_silent,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    Task F() => Task.CompletedTask;
+    async Task M(C a)
+    {
+        var t = a?.F();
+        if (t != null)
+        {
+            await t;
+        }
+    }
+}
+}

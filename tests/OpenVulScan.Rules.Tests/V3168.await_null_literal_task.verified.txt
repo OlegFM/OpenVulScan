@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_null_literal_task,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    async Task M()
+    {
+        Task t = null;
+        await t;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3168,
+      Message: Awaiting on expression with potential null value can lead to throwing of 'NullReferenceException',
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 9,
+        EndLine: 8,
+        EndColumn: 16
+      }
+    }
+  ]
+}

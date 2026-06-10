@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_unchecked_parameter_silent,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    async Task M(Task t)
+    {
+        await t;
+    }
+}
+}

@@ -1,0 +1,28 @@
+﻿{
+  RuleCode: V3168,
+  TestCase: await_task_nulled_on_branch,
+  Source:
+using System.Threading.Tasks;
+class C
+{
+    async Task M(bool c)
+    {
+        Task t = Task.CompletedTask;
+        if (c) { t = null; }
+        await t;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3168,
+      Message: Awaiting on expression with potential null value can lead to throwing of 'NullReferenceException',
+      Severity: Warning,
+      Location: {
+        StartLine: 9,
+        StartColumn: 9,
+        EndLine: 9,
+        EndColumn: 16
+      }
+    }
+  ]
+}

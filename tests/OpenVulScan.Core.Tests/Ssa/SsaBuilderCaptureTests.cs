@@ -10,8 +10,11 @@ namespace OpenVulScan.Tests.Ssa;
 public class SsaBuilderCaptureTests
 {
     [Fact]
-    public void FlowCapture_GetsSsaIdWithVersionZero()
+    public void SingleDefFlowCapture_GetsVersionZero()
     {
+        // Captures are ordinary tracked defs since ovs-tr6 S-2.
+        // Multi-def captures (?? / ?: arms) get distinct versions joined by phi.
+        // A single-def capture's first version is 0 because versioning starts at 0.
         var (cfg, model, _) = CfgTestHarness.Compile(@"
 class C
 {

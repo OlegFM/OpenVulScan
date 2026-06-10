@@ -54,18 +54,6 @@ public static class SsaBuilder
             return id;
         }
 
-        SsaId AllocateExplicit(TrackedKey key, int version)
-        {
-            var id = new SsaId(key, version);
-            if (!allVersions.TryGetValue(key, out var list))
-            {
-                list = new List<SsaId>();
-                allVersions[key] = list;
-            }
-            if (!list.Contains(id)) list.Add(id);
-            return id;
-        }
-
         var blockOut = new Dictionary<BasicBlock, Dictionary<TrackedKey, SsaId>>();
         var phisToBind = new List<(BasicBlock Block, TrackedKey Key, SsaId Result)>();
 
@@ -118,7 +106,7 @@ public static class SsaBuilder
 
             foreach (var op in TopLevelBlockOps(block))
             {
-                Walk(op, current, NewVersion, AllocateExplicit, definitions, uses);
+                Walk(op, current, NewVersion, definitions, uses);
             }
 
             blockOut[block] = current;
@@ -199,6 +187,8 @@ public static class SsaBuilder
             new TrackedKey.Symbol(lref.Local),
         IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref } =>
             new TrackedKey.Symbol(pref.Parameter),
+        // Flow captures are ordinary tracked defs: multi-def captures (both arms of ?? / ?:) need
+        // distinct versions so phi placement can join them.
         IFlowCaptureOperation capture => new TrackedKey.Capture(capture.Id),
         _ => null,
     };
@@ -227,31 +217,18 @@ public static class SsaBuilder
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
-        Func<TrackedKey, int, SsaId> allocateExplicit,
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
         ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
     {
         // Tracked defs: walk children first (RHS reads bind pre-def versions and
         // RHS kills happen before the def), then register the def. This matches
         // C# evaluation order: the right-hand side completes before the write.
+        // IFlowCaptureOperation is handled here too (via TryGetDefinitionKey).
         var defKey = TryGetDefinitionKey(op);
         if (defKey is not null)
         {
-            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
+            WalkChildren(op, current, newVersion, definitions, uses);
             RegisterDef(op, defKey, current, newVersion, definitions);
-            return;
-        }
-
-        // Flow captures: the captured expression is evaluated first, then the
-        // capture binds. Use newVersion so that multi-def captures (e.g. both
-        // arms of `??` or `?:`) get distinct SSA versions enabling phi placement.
-        if (op is IFlowCaptureOperation flow)
-        {
-            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
-            var captureKey = new TrackedKey.Capture(flow.Id);
-            var captureId = newVersion(captureKey);
-            current[captureKey] = captureId;
-            definitions[op] = captureId;
             return;
         }
 
@@ -259,7 +236,7 @@ public static class SsaBuilder
         // then all tracked instance fields are killed (callee may mutate them).
         if (IsThisAccessingInvocation(op))
         {
-            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
+            WalkChildren(op, current, newVersion, definitions, uses);
             var fieldKeysSnapshot = current.Keys.OfType<TrackedKey.InstanceField>().ToList();
             foreach (var key in fieldKeysSnapshot)
             {
@@ -270,21 +247,20 @@ public static class SsaBuilder
         }
 
         RecordUse(op, current, uses);
-        WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
+        WalkChildren(op, current, newVersion, definitions, uses);
     }
 
     private static void WalkChildren(
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
-        Func<TrackedKey, int, SsaId> allocateExplicit,
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
         ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
     {
         foreach (var child in op.ChildOperations)
         {
             if (child is null) continue;
-            Walk(child, current, newVersion, allocateExplicit, definitions, uses);
+            Walk(child, current, newVersion, definitions, uses);
         }
     }
 

@@ -103,6 +103,10 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
                 NullState.DefinitelyNull,
             ILiteralOperation lit when lit.ConstantValue.HasValue =>
                 NullState.NotNull,
+            // default(T) where T is a reference type is null.  The Roslyn CFG emits
+            // IDefaultValueOperation for the null arm of a ?. operator.
+            IDefaultValueOperation dv when dv.Type is { IsReferenceType: true } =>
+                NullState.DefinitelyNull,
             ILocalReferenceOperation lref =>
                 Lookup(lref, new TrackedKey.Symbol(lref.Local), state),
             IParameterReferenceOperation pref =>

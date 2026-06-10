@@ -1,0 +1,17 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: null_checked_after_conditional_silent,
+  Source:
+class C
+{
+    string F;
+    void M(C a)
+    {
+        var x = a?.F;
+        if (x != null)
+        {
+            var n = x.Length;
+        }
+    }
+}
+}

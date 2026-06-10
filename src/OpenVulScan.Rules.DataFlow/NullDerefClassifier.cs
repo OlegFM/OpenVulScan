@@ -101,6 +101,8 @@ internal static class NullDerefClassifier
     {
         // φ-results and entry versions have no def site — provenance is
         // ambiguous there and falls back to V3080.
+        // A value that is ?.-tainted on only one of several joined paths reaches
+        // here as a φ-result and intentionally reports as V3080, not V3105.
         var rhsSyntax = ssa.DefSiteOf(id) switch
         {
             IVariableDeclaratorOperation { Initializer.Value: { } value } => value.Syntax,

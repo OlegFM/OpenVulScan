@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: conditional_invocation_result_then_call,
+  Source:
+class C
+{
+    string F() => "";
+    void M(C a)
+    {
+        var x = a?.F();
+        var n = x.ToString();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3105,
+      Message: The 'x' variable was used after it was assigned through null-conditional operator. NullReferenceException is possible.,
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 17,
+        EndLine: 8,
+        EndColumn: 29
+      }
+    }
+  ]
+}

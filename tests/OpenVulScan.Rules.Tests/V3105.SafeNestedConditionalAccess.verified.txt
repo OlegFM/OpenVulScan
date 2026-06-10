@@ -1,5 +1,0 @@
-﻿{
-  RuleCode: V3105,
-  TestCase: SafeNestedConditionalAccess,
-  Source: class C { void M() { var x = obj?.A?.B; } }
-}

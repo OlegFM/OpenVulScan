@@ -1,75 +1,100 @@
+using Xunit;
+
 namespace OpenVulScan.Tests;
 
 public class V3105Tests
 {
     [Fact]
-    public Task SimpleConditionalAccessFollowedByMemberAccess()
+    public Task DeclaratorFromConditionalAccessThenDeref() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "declarator_from_conditional_then_deref", @"
+class C
+{
+    string F;
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = obj?.A.B; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "SimpleConditionalAccessFollowedByMemberAccess", source);
+        var x = a?.F;
+        var n = x.Length;
     }
+}");
 
     [Fact]
-    public Task ConditionalAccessFollowedByTwoMemberAccesses()
+    public Task AssignmentFromConditionalAccessThenDeref() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "assignment_from_conditional_then_deref", @"
+class C
+{
+    string F;
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = obj?.A.B.C; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "ConditionalAccessFollowedByTwoMemberAccesses", source);
+        string x;
+        x = a?.F;
+        var n = x.Length;
     }
+}");
 
     [Fact]
-    public Task NestedConditionalAccessFollowedByMemberAccess()
+    public Task ConditionalInvocationResultThenInvocation() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "conditional_invocation_result_then_call", @"
+class C
+{
+    string F() => """";
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = obj?.A?.B.C; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "NestedConditionalAccessFollowedByMemberAccess", source);
+        var x = a?.F();
+        var n = x.ToString();
     }
+}");
 
     [Fact]
-    public Task ParenthesizedConditionalAccessFollowedByMemberAccess()
+    public Task ParenthesizedConditionalRhsThenDeref() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "parenthesized_conditional_rhs_then_deref", @"
+class C
+{
+    string F;
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = (obj?.A).B; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "ParenthesizedConditionalAccessFollowedByMemberAccess", source);
+        var x = (a?.F);
+        var n = x.Length;
     }
+}");
 
     [Fact]
-    public Task ConditionalAccessFollowedByMethodCall()
+    public Task NullCheckedAfterConditionalIsSilent() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "null_checked_after_conditional_silent", @"
+class C
+{
+    string F;
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = obj?.A.B.ToString(); } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "ConditionalAccessFollowedByMethodCall", source);
+        var x = a?.F;
+        if (x != null)
+        {
+            var n = x.Length;
+        }
     }
+}");
 
     [Fact]
-    public Task SafeSingleConditionalAccess()
+    public Task CoalesceFallbackIsSilent() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "coalesce_fallback_silent", @"
+class C
+{
+    string F;
+    void M(C a)
     {
-        const string source = "class C { void M() { var x = obj?.A; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "SafeSingleConditionalAccess", source);
+        var x = a?.F ?? ""y"";
+        var n = x.Length;
     }
+}");
 
     [Fact]
-    public Task SafeNestedConditionalAccess()
+    public Task PlainAssignmentDoesNotFireV3105() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3105", "plain_null_assignment_not_v3105", @"
+class C
+{
+    void M()
     {
-        const string source = "class C { void M() { var x = obj?.A?.B; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "SafeNestedConditionalAccess", source);
+        string x = null;
+        var n = x.Length;
     }
-
-    [Fact]
-    public Task NonConditionalMemberAccessChain()
-    {
-        const string source = "class C { void M() { var x = obj.A.B; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "NonConditionalMemberAccessChain", source);
-    }
-
-    [Fact]
-    public Task ConditionalAccessWithElementAccess()
-    {
-        const string source = "class C { void M() { var x = obj?.A[0]; } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "ConditionalAccessWithElementAccess", source);
-    }
-
-    [Fact]
-    public Task ConditionalAccessWithMethodInvocation()
-    {
-        const string source = "class C { void M() { var x = obj?.A.ToString(); } }";
-        return SnapshotTestHarness.RunRuleSnapshotAsync("V3105", "ConditionalAccessWithMethodInvocation", source);
-    }
-
+}");
 }

@@ -1,5 +1,0 @@
-﻿{
-  RuleCode: V3105,
-  TestCase: NonConditionalMemberAccessChain,
-  Source: class C { void M() { var x = obj.A.B; } }
-}

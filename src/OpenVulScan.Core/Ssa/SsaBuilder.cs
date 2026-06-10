@@ -16,6 +16,14 @@ public static class SsaBuilder
         ArgumentNullException.ThrowIfNull(cfg);
         ArgumentNullException.ThrowIfNull(model);
 
+        // --------- Pass 0: build l-value capture aliases ---------
+        // Roslyn emits IFlowCaptureOperation(id, LocalRef(x)) when x is used as
+        // an l-value target in an expression like `x = a?.F`.  The subsequent
+        // SimpleAssignmentOperation then targets IFlowCaptureReferenceOperation(id)
+        // rather than LocalReferenceOperation(x).  We build a map capture-id →
+        // TrackedKey so that TryGetDefinitionKey can recognise these indirect defs.
+        var captureToLocal = BuildCaptureToLocalMap(cfg);
+
         // --------- Pass 1: collect def-sites and globals ---------
         var defSites = new Dictionary<TrackedKey, int>();
 
@@ -23,7 +31,7 @@ public static class SsaBuilder
         {
             foreach (var op in EnumerateBlockOps(block))
             {
-                var key = TryGetDefinitionKey(op);
+                var key = TryGetDefinitionKey(op, captureToLocal);
                 if (key is null) continue;
                 defSites[key] = defSites.GetValueOrDefault(key, 0) + 1;
             }
@@ -106,7 +114,7 @@ public static class SsaBuilder
 
             foreach (var op in TopLevelBlockOps(block))
             {
-                Walk(op, current, NewVersion, definitions, uses);
+                Walk(op, current, NewVersion, definitions, uses, captureToLocal);
             }
 
             blockOut[block] = current;
@@ -152,6 +160,31 @@ public static class SsaBuilder
 
     // --- helpers ---
 
+    /// <summary>
+    /// Scans the CFG for l-value captures: <c>FlowCaptureOperation(id, LocalRef(x))</c>
+    /// or <c>FlowCaptureOperation(id, ParameterRef(p))</c>.  Returns a map from capture
+    /// ID to the <see cref="TrackedKey"/> of the aliased local or parameter.
+    /// </summary>
+    private static Dictionary<CaptureId, TrackedKey> BuildCaptureToLocalMap(ControlFlowGraph cfg)
+    {
+        var map = new Dictionary<CaptureId, TrackedKey>();
+        foreach (var block in cfg.Blocks)
+        {
+            foreach (var op in EnumerateBlockOps(block))
+            {
+                if (op is IFlowCaptureOperation { Value: ILocalReferenceOperation lref } fc1)
+                {
+                    map[fc1.Id] = new TrackedKey.Symbol(lref.Local);
+                }
+                else if (op is IFlowCaptureOperation { Value: IParameterReferenceOperation pref } fc2)
+                {
+                    map[fc2.Id] = new TrackedKey.Symbol(pref.Parameter);
+                }
+            }
+        }
+        return map;
+    }
+
     private static IMethodSymbol? TryGetMethodSymbol(SemanticModel model)
     {
         // Same heuristic used in Task 6: pick the first method declaration in the syntax tree.
@@ -163,35 +196,48 @@ public static class SsaBuilder
         return methodSyntax is null ? null : model.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
     }
 
-    private static TrackedKey? TryGetDefinitionKey(IOperation op) => op switch
+    private static TrackedKey? TryGetDefinitionKey(
+        IOperation op,
+        IReadOnlyDictionary<CaptureId, TrackedKey>? captureToLocal = null)
     {
-        IVariableDeclaratorOperation { Symbol: ILocalSymbol local } =>
-            new TrackedKey.Symbol(local),
-        ISimpleAssignmentOperation { Target: ILocalReferenceOperation lref } =>
-            new TrackedKey.Symbol(lref.Local),
-        ISimpleAssignmentOperation { Target: IParameterReferenceOperation pref } =>
-            new TrackedKey.Symbol(pref.Parameter),
-        ISimpleAssignmentOperation
+        switch (op)
         {
-            Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field }
-        } => new TrackedKey.InstanceField(field),
-        ICompoundAssignmentOperation { Target: ILocalReferenceOperation lref } =>
-            new TrackedKey.Symbol(lref.Local),
-        ICompoundAssignmentOperation { Target: IParameterReferenceOperation pref } =>
-            new TrackedKey.Symbol(pref.Parameter),
-        ICompoundAssignmentOperation
-        {
-            Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field2 }
-        } => new TrackedKey.InstanceField(field2),
-        IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lref } =>
-            new TrackedKey.Symbol(lref.Local),
-        IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref } =>
-            new TrackedKey.Symbol(pref.Parameter),
-        // Flow captures are ordinary tracked defs: multi-def captures (both arms of ?? / ?:) need
-        // distinct versions so phi placement can join them.
-        IFlowCaptureOperation capture => new TrackedKey.Capture(capture.Id),
-        _ => null,
-    };
+            case IVariableDeclaratorOperation { Symbol: ILocalSymbol local }:
+                return new TrackedKey.Symbol(local);
+            case ISimpleAssignmentOperation { Target: ILocalReferenceOperation lref }:
+                return new TrackedKey.Symbol(lref.Local);
+            case ISimpleAssignmentOperation { Target: IParameterReferenceOperation pref }:
+                return new TrackedKey.Symbol(pref.Parameter);
+            case ISimpleAssignmentOperation
+            {
+                Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field }
+            }:
+                return new TrackedKey.InstanceField(field);
+            // l-value capture target: `FlowCaptureRef(id) = value` where id is an alias for a local/param.
+            case ISimpleAssignmentOperation { Target: IFlowCaptureReferenceOperation capRef }
+                when captureToLocal is not null && captureToLocal.TryGetValue(capRef.Id, out var aliasKey):
+                return aliasKey;
+            case ICompoundAssignmentOperation { Target: ILocalReferenceOperation lref }:
+                return new TrackedKey.Symbol(lref.Local);
+            case ICompoundAssignmentOperation { Target: IParameterReferenceOperation pref }:
+                return new TrackedKey.Symbol(pref.Parameter);
+            case ICompoundAssignmentOperation
+            {
+                Target: IFieldReferenceOperation { Instance: IInstanceReferenceOperation, Field: var field2 }
+            }:
+                return new TrackedKey.InstanceField(field2);
+            case IIncrementOrDecrementOperation { Target: ILocalReferenceOperation lref }:
+                return new TrackedKey.Symbol(lref.Local);
+            case IIncrementOrDecrementOperation { Target: IParameterReferenceOperation pref }:
+                return new TrackedKey.Symbol(pref.Parameter);
+            // Flow captures are ordinary tracked defs: multi-def captures (both arms of ?? / ?:) need
+            // distinct versions so phi placement can join them.
+            case IFlowCaptureOperation capture:
+                return new TrackedKey.Capture(capture.Id);
+            default:
+                return null;
+        }
+    }
 
     private static void RegisterDef(
         IOperation op,
@@ -218,16 +264,17 @@ public static class SsaBuilder
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
-        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
+        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses,
+        IReadOnlyDictionary<CaptureId, TrackedKey>? captureToLocal = null)
     {
         // Tracked defs: walk children first (RHS reads bind pre-def versions and
         // RHS kills happen before the def), then register the def. This matches
         // C# evaluation order: the right-hand side completes before the write.
         // IFlowCaptureOperation is handled here too (via TryGetDefinitionKey).
-        var defKey = TryGetDefinitionKey(op);
+        var defKey = TryGetDefinitionKey(op, captureToLocal);
         if (defKey is not null)
         {
-            WalkChildren(op, current, newVersion, definitions, uses);
+            WalkChildren(op, current, newVersion, definitions, uses, captureToLocal);
             RegisterDef(op, defKey, current, newVersion, definitions);
             return;
         }
@@ -236,7 +283,7 @@ public static class SsaBuilder
         // then all tracked instance fields are killed (callee may mutate them).
         if (IsThisAccessingInvocation(op))
         {
-            WalkChildren(op, current, newVersion, definitions, uses);
+            WalkChildren(op, current, newVersion, definitions, uses, captureToLocal);
             var fieldKeysSnapshot = current.Keys.OfType<TrackedKey.InstanceField>().ToList();
             foreach (var key in fieldKeysSnapshot)
             {
@@ -246,8 +293,8 @@ public static class SsaBuilder
             return;
         }
 
-        RecordUse(op, current, uses);
-        WalkChildren(op, current, newVersion, definitions, uses);
+        RecordUse(op, current, uses, captureToLocal);
+        WalkChildren(op, current, newVersion, definitions, uses, captureToLocal);
     }
 
     private static void WalkChildren(
@@ -255,19 +302,21 @@ public static class SsaBuilder
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
-        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
+        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses,
+        IReadOnlyDictionary<CaptureId, TrackedKey>? captureToLocal = null)
     {
         foreach (var child in op.ChildOperations)
         {
             if (child is null) continue;
-            Walk(child, current, newVersion, definitions, uses);
+            Walk(child, current, newVersion, definitions, uses, captureToLocal);
         }
     }
 
     private static void RecordUse(
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
-        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
+        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses,
+        IReadOnlyDictionary<CaptureId, TrackedKey>? captureToLocal = null)
     {
         switch (op)
         {
@@ -305,10 +354,20 @@ public static class SsaBuilder
             }
             case IFlowCaptureReferenceOperation flowRef:
             {
-                // No parent guard needed — captures are never assignment targets.
-                var key = new TrackedKey.Capture(flowRef.Id);
-                if (current.TryGetValue(key, out var id))
-                    uses[(op, key)] = id;
+                // Skip: this flow-capture reference is an l-value assignment target
+                // (e.g. `FlowCaptureRef(x_lvalue) = a?.F`).  The real write is tracked
+                // against the aliased local/param by TryGetDefinitionKey.
+                if (captureToLocal is not null
+                    && captureToLocal.ContainsKey(flowRef.Id)
+                    && flowRef.Parent is ISimpleAssignmentOperation { Target: var tgt }
+                    && ReferenceEquals(tgt, flowRef))
+                {
+                    break;
+                }
+
+                var capKey = new TrackedKey.Capture(flowRef.Id);
+                if (current.TryGetValue(capKey, out var capId))
+                    uses[(op, capKey)] = capId;
                 break;
             }
         }

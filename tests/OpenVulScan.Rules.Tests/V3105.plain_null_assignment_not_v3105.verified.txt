@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: plain_null_assignment_not_v3105,
+  Source:
+class C
+{
+    void M()
+    {
+        string x = null;
+        var n = x.Length;
+    }
+}
+}

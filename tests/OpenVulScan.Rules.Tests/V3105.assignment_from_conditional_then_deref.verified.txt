@@ -1,0 +1,28 @@
+﻿{
+  RuleCode: V3105,
+  TestCase: assignment_from_conditional_then_deref,
+  Source:
+class C
+{
+    string F;
+    void M(C a)
+    {
+        string x;
+        x = a?.F;
+        var n = x.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3105,
+      Message: The 'x' variable was used after it was assigned through null-conditional operator. NullReferenceException is possible.,
+      Severity: Warning,
+      Location: {
+        StartLine: 9,
+        StartColumn: 17,
+        EndLine: 9,
+        EndColumn: 25
+      }
+    }
+  ]
+}

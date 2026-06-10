@@ -12,6 +12,7 @@ public sealed class SsaIndex
     private readonly ImmutableDictionary<BasicBlock, ImmutableDictionary<TrackedKey, SsaId>> _entryVersions;
     private readonly ImmutableDictionary<BasicBlock, ImmutableArray<Phi>> _phis;
     private readonly ImmutableDictionary<TrackedKey, ImmutableArray<SsaId>> _allVersions;
+    private readonly ImmutableDictionary<SsaId, IOperation> _defSites;
 
     internal SsaIndex(
         ImmutableDictionary<IOperation, SsaId> definitions,
@@ -25,6 +26,7 @@ public sealed class SsaIndex
         _entryVersions = entryVersions;
         _phis = phis;
         _allVersions = allVersions;
+        _defSites = definitions.ToImmutableDictionary(kv => kv.Value, kv => kv.Key);
     }
 
     public static SsaIndex Empty { get; } = new(
@@ -69,5 +71,15 @@ public sealed class SsaIndex
         return _allVersions.TryGetValue(key, out var arr)
             ? (IReadOnlyList<SsaId>)arr
             : ImmutableArray<SsaId>.Empty;
+    }
+
+    /// <summary>
+    /// Returns the defining operation of <paramref name="id"/>, or
+    /// <see langword="null"/> for φ-results and entry versions, which have
+    /// no defining operation.
+    /// </summary>
+    public IOperation? DefSiteOf(SsaId id)
+    {
+        return _defSites.TryGetValue(id, out var op) ? op : null;
     }
 }

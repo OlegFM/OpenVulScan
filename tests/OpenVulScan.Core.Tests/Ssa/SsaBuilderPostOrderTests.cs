@@ -41,6 +41,7 @@ class C
     int f;
     void M()
     {
+        this.f = 0;
         this.f = GetX();
         var y = this.f;
     }
@@ -52,15 +53,17 @@ class C
             .GetMembers("f").First();
         var key = new TrackedKey.InstanceField(field);
 
+        // Second assignment: RHS call kills the seeded version FIRST (post-order),
+        // then the def registers; the downstream read must bind exactly that def.
         var assign = AllOps(cfg).OfType<ISimpleAssignmentOperation>()
-            .Single(a => a.Target is IFieldReferenceOperation);
+            .Last(a => a.Target is IFieldReferenceOperation);
         var read = AllOps(cfg).OfType<IFieldReferenceOperation>()
             .Single(f => f.Parent is not ISimpleAssignmentOperation parent
                          || !ReferenceEquals(parent.Target, f));
 
-        // The RHS call kills fields BEFORE the def registers (post-order),
-        // so the downstream read must bind exactly the assignment's version.
         Assert.Equal(index.DefinitionAt(assign), index.UseAt(read, key));
+        // Versions: v0 seed def, v1 RHS kill, v2 the second assignment's def.
+        Assert.Equal(3, index.AllVersions(key).Count);
     }
 
     [Fact]

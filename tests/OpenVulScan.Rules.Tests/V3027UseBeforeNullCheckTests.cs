@@ -99,4 +99,25 @@ public class V3027UseBeforeNullCheckTests
         const string source = "class C { void M(string s) { var r = s is not null && s.Length > 0; } }";
         return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "IsNotNullGuardBeforeMemberAccess_DoesNotFlag", source);
     }
+
+    [Fact]
+    public Task MixedPrecedenceDerefBeforeCheckFlags()
+    {
+        const string source = "class C { void M(int[] a, bool b) { var r = a.Length > 0 && b || a == null; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "MixedPrecedence_DerefBeforeCheck_Flags", source);
+    }
+
+    [Fact]
+    public Task MixedPrecedenceCheckBeforeDerefDoesNotFlag()
+    {
+        const string source = "class C { void M(int[] a, bool b) { var r = a == null && b || a.Length > 0; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "MixedPrecedence_CheckBeforeDeref_DoesNotFlag", source);
+    }
+
+    [Fact]
+    public Task RedundantCheckAfterGuardDoesNotFlag()
+    {
+        const string source = "class C { void M(int[] a) { var r = a != null && a.Length > 0 && a == null; } }";
+        return SnapshotTestHarness.RunRuleSnapshotAsync("V3027", "RedundantCheckAfterGuard_DoesNotFlag", source);
+    }
 }

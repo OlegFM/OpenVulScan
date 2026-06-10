@@ -1,0 +1,5 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: MixedPrecedence_CheckBeforeDeref_DoesNotFlag,
+  Source: class C { void M(int[] a, bool b) { var r = a == null && b || a.Length > 0; } }
+}

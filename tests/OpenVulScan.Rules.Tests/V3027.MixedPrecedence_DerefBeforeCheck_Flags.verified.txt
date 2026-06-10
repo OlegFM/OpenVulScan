@@ -1,0 +1,18 @@
+﻿{
+  RuleCode: V3027,
+  TestCase: MixedPrecedence_DerefBeforeCheck_Flags,
+  Source: class C { void M(int[] a, bool b) { var r = a.Length > 0 && b || a == null; } },
+  Diagnostics: [
+    {
+      Id: V3027,
+      Message: Variable 'a' was used in the logical expression before it was verified against null,
+      Severity: Warning,
+      Location: {
+        StartLine: 1,
+        StartColumn: 66,
+        EndLine: 1,
+        EndColumn: 75
+      }
+    }
+  ]
+}

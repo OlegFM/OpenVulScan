@@ -21,6 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="TestData/**/*.cs" />
+    <None Include="TestData/**/*.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\OpenVulScan.Rules.Ast\OpenVulScan.Rules.Ast.csproj" />
     <ProjectReference Include="..\..\src\OpenVulScan.Rules.DataFlow\OpenVulScan.Rules.DataFlow.csproj" />
     <ProjectReference Include="..\..\src\OpenVulScan.Rules.PathSensitive\OpenVulScan.Rules.PathSensitive.csproj" />

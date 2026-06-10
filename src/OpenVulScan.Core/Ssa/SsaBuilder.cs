@@ -116,9 +116,9 @@ public static class SsaBuilder
                 phisBuilder[block] = blockPhis.ToImmutable();
             }
 
-            foreach (var op in EnumerateBlockOps(block))
+            foreach (var op in TopLevelBlockOps(block))
             {
-                ProcessOperation(op, current, NewVersion, AllocateExplicit, definitions, uses);
+                Walk(op, current, NewVersion, AllocateExplicit, definitions, uses);
             }
 
             blockOut[block] = current;
@@ -214,7 +214,15 @@ public static class SsaBuilder
         definitions[op] = id;
     }
 
-    private static void ProcessOperation(
+    private static IEnumerable<IOperation> TopLevelBlockOps(BasicBlock block)
+    {
+        foreach (var op in block.Operations)
+            yield return op;
+        if (block.BranchValue is not null)
+            yield return block.BranchValue;
+    }
+
+    private static void Walk(
         IOperation op,
         Dictionary<TrackedKey, SsaId> current,
         Func<TrackedKey, SsaId> newVersion,
@@ -222,10 +230,22 @@ public static class SsaBuilder
         ImmutableDictionary<IOperation, SsaId>.Builder definitions,
         ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
     {
-        // Flow captures: Roslyn's built-in SSA temporaries — always version 0,
-        // never go through NewVersion (they are single-assignment by Roslyn's guarantee).
+        // Tracked defs: walk children first (RHS reads bind pre-def versions and
+        // RHS kills happen before the def), then register the def. This matches
+        // C# evaluation order: the right-hand side completes before the write.
+        var defKey = TryGetDefinitionKey(op);
+        if (defKey is not null)
+        {
+            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
+            RegisterDef(op, defKey, current, newVersion, definitions);
+            return;
+        }
+
+        // Flow captures: the captured expression is evaluated first, then the
+        // capture binds. Always version 0 (single-assignment by Roslyn's guarantee).
         if (op is IFlowCaptureOperation flow)
         {
+            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
             var captureKey = new TrackedKey.Capture(flow.Id);
             var captureId = allocateExplicit(captureKey, 0);
             current[captureKey] = captureId;
@@ -233,17 +253,11 @@ public static class SsaBuilder
             return;
         }
 
-        // Defs (unified through TryGetDefinitionKey + RegisterDef).
-        var defKey = TryGetDefinitionKey(op);
-        if (defKey is not null)
-        {
-            RegisterDef(op, defKey, current, newVersion, definitions);
-            return;
-        }
-
-        // Kill all tracked instance fields when an instance method is invoked (may mutate this.fields).
+        // this-accessing invocations: argument reads bind pre-kill versions,
+        // then all tracked instance fields are killed (callee may mutate them).
         if (IsThisAccessingInvocation(op))
         {
+            WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
             var fieldKeysSnapshot = current.Keys.OfType<TrackedKey.InstanceField>().ToList();
             foreach (var key in fieldKeysSnapshot)
             {
@@ -253,7 +267,30 @@ public static class SsaBuilder
             return;
         }
 
-        // Uses -- with parent guards to skip assignment/increment Targets (phantom-use prevention).
+        RecordUse(op, current, uses);
+        WalkChildren(op, current, newVersion, allocateExplicit, definitions, uses);
+    }
+
+    private static void WalkChildren(
+        IOperation op,
+        Dictionary<TrackedKey, SsaId> current,
+        Func<TrackedKey, SsaId> newVersion,
+        Func<TrackedKey, int, SsaId> allocateExplicit,
+        ImmutableDictionary<IOperation, SsaId>.Builder definitions,
+        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
+    {
+        foreach (var child in op.ChildOperations)
+        {
+            if (child is null) continue;
+            Walk(child, current, newVersion, allocateExplicit, definitions, uses);
+        }
+    }
+
+    private static void RecordUse(
+        IOperation op,
+        Dictionary<TrackedKey, SsaId> current,
+        ImmutableDictionary<(IOperation, TrackedKey), SsaId>.Builder uses)
+    {
         switch (op)
         {
             case ILocalReferenceOperation lref:

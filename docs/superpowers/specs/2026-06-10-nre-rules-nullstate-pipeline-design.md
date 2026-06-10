@@ -250,7 +250,35 @@ Acceptance: full suite green (456 baseline + new), Release build clean
   condition operand and by negative tests asserting positives still fire when the guard
   protects a *different* variable.
 
-## 7. Tracker housekeeping
+## 7. Implementation notes / deviations from the approved design
+
+Recorded post-implementation (final review 2026-06-10). All four were individually
+reviewed and verified sound; they extend rather than contradict the design above.
+
+1. **Phase-1 AST V3105 retired** (commit `5ed53ec`). A pre-existing syntactic stopgap
+   `V3105NreAfterConditionalAccess` (Rules.Ast) owned the V3105 code; the registry rejects
+   duplicates, so the rule, its tests and 10 snapshots were deleted. Its `(a?.B).C` half is
+   now correctly attributed to V3153; its per-`a?.B.C` heuristic was intentionally dropped
+   (safe by language semantics, no null evidence).
+2. **`NullStateSsaTransfer`: `IDefaultValueOperation` → `DefinitelyNull`** for reference
+   types (commit `5ed53ec`). The `?.` null arm emits `IDefaultValueOperation`, not a null
+   literal; without this arm the capture lost its null evidence. Value types and
+   unconstrained generics stay `Unknown` (`IsReferenceType` guard). Direct unit coverage in
+   `NullStateSsaTransferDefaultValueTests` (commits `f187361`, `eeb6854`).
+3. **`SsaBuilder`: l-value capture aliasing** (commit `5ed53ec`). Roslyn lowers assignment
+   *targets* into flow captures (`string x; x = a?.F;` → target is a capture-ref wrapping
+   `LocalReference(x)`). `BuildCaptureToLocalMap` re-keys such defs to
+   `TrackedKey.Symbol(x)` uniformly across def counting, versioning/φ and use binding.
+   Direct unit coverage in `SsaBuilderCaptureTests` (commit `f187361`).
+4. **`ConstantSsaEvaluator`: null-literal crash guard** (commits `d3a8fc6`, `f6f670f`).
+   Latent `ArgumentNullException` (`Const(null)` throws) exposed when DataFlow rules first
+   ran through the production scheduler; null literals now evaluate to `Top`, matching
+   `ConstantSsaTransfer` in Core.
+
+Files touched beyond the §4 table: `src/OpenVulScan.Rules.Ast/V3105NreAfterConditionalAccess.cs`
+(deleted), `src/OpenVulScan.Core/Ssa/SsaBuilder.cs`, `src/OpenVulScan.Rules.DataFlow/ConstantSsaEvaluator.cs`.
+
+## 8. Tracker housekeeping
 
 - `ovs-2qi.15`: note scope narrowing (quartet only); close when this spec ships.
 - New beads: V3142 (unreachable code, CFG reachability mechanism) and V3151

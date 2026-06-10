@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3153,
+  TestCase: chained_conditional_access_silent,
+  Source:
+class C
+{
+    string F;
+    void M(C a)
+    {
+        var n = a?.F.Length;
+    }
+}
+}

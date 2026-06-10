@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3153,
+  TestCase: coalesce_guarded_conditional_silent,
+  Source:
+class C
+{
+    string F;
+    void M(C a)
+    {
+        var n = (a?.F ?? "y").Length;
+    }
+}
+}

@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3153,
+  TestCase: nested_conditional_chain_deref,
+  Source:
+class C
+{
+    C Next;
+    string F;
+    void M(C a)
+    {
+        var n = (a?.Next?.F).Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3153,
+      Message: Dereferencing the result of null-conditional access operator can lead to NullReferenceException,
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 17,
+        EndLine: 8,
+        EndColumn: 36
+      }
+    }
+  ]
+}

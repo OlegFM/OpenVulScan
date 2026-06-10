@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3153,
+  TestCase: invocation_on_parenthesized_conditional,
+  Source:
+class C
+{
+    string F() => "";
+    void M(C a)
+    {
+        var n = (a?.F()).ToString();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3153,
+      Message: Dereferencing the result of null-conditional access operator can lead to NullReferenceException,
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 17,
+        EndLine: 7,
+        EndColumn: 36
+      }
+    }
+  ]
+}

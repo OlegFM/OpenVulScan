@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3153,
+  TestCase: variable_deref_not_v3153,
+  Source:
+class C
+{
+    string F;
+    void M(C a)
+    {
+        var x = a?.F;
+        var n = x.Length;
+    }
+}
+}

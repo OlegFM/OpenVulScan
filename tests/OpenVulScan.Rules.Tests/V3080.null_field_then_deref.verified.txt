@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: null_field_then_deref,
+  Source:
+class C
+{
+    string f;
+    void M()
+    {
+        this.f = null;
+        var n = this.f.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 'this.f',
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 17,
+        EndLine: 8,
+        EndColumn: 30
+      }
+    }
+  ]
+}

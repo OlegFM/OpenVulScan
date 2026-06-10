@@ -1,0 +1,27 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: null_on_one_branch_join,
+  Source:
+class C
+{
+    void M(bool c)
+    {
+        string s = "x";
+        if (c) { s = null; }
+        var n = s.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 's',
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 17,
+        EndLine: 8,
+        EndColumn: 25
+      }
+    }
+  ]
+}

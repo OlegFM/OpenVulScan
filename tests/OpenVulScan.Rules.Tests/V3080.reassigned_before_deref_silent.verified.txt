@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: reassigned_before_deref_silent,
+  Source:
+class C
+{
+    void M()
+    {
+        string s = null;
+        s = "x";
+        var n = s.Length;
+    }
+}
+}

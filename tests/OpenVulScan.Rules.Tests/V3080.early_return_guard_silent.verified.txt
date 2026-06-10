@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: early_return_guard_silent,
+  Source:
+class C
+{
+    void M(bool c)
+    {
+        string s = null;
+        if (c) { s = "x"; }
+        if (s == null) { return; }
+        var n = s.Length;
+    }
+}
+}

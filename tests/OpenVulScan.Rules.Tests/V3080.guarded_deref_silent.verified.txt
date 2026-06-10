@@ -1,0 +1,17 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: guarded_deref_silent,
+  Source:
+class C
+{
+    void M(bool c)
+    {
+        string s = null;
+        if (c) { s = "x"; }
+        if (s != null)
+        {
+            var n = s.Length;
+        }
+    }
+}
+}

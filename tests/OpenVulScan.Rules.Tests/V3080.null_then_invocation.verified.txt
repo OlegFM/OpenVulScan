@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: null_then_invocation,
+  Source:
+class C
+{
+    void M()
+    {
+        string s = null;
+        var t = s.ToString();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 's',
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 17,
+        EndLine: 7,
+        EndColumn: 29
+      }
+    }
+  ]
+}

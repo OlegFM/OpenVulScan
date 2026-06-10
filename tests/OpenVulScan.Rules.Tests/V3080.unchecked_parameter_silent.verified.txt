@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: unchecked_parameter_silent,
+  Source:
+class C
+{
+    void M(string p)
+    {
+        var n = p.Length;
+    }
+}
+}

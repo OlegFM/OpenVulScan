@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: null_array_element_access,
+  Source:
+class C
+{
+    void M()
+    {
+        int[] a = null;
+        var n = a[0];
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 'a',
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 17,
+        EndLine: 7,
+        EndColumn: 21
+      }
+    }
+  ]
+}

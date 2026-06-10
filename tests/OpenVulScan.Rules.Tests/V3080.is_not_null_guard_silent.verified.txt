@@ -1,0 +1,17 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: is_not_null_guard_silent,
+  Source:
+class C
+{
+    void M(bool c)
+    {
+        string s = null;
+        if (c) { s = "x"; }
+        if (s is not null)
+        {
+            var n = s.Length;
+        }
+    }
+}
+}

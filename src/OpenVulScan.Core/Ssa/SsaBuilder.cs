@@ -28,7 +28,7 @@ public static class SsaBuilder
 
         foreach (var block in cfg.Blocks)
         {
-            foreach (var op in EnumerateBlockOps(block))
+            foreach (var op in OperationTree.Enumerate(block))
             {
                 var key = TryGetDefinitionKey(op, captureToLocal);
                 if (key is null) continue;
@@ -169,7 +169,7 @@ public static class SsaBuilder
         var map = new Dictionary<CaptureId, TrackedKey>();
         foreach (var block in cfg.Blocks)
         {
-            foreach (var op in EnumerateBlockOps(block))
+            foreach (var op in OperationTree.Enumerate(block))
             {
                 if (op is IFlowCaptureOperation { Value: ILocalReferenceOperation lref } fc1)
                 {
@@ -400,28 +400,4 @@ public static class SsaBuilder
         return false;
     }
 
-    private static IEnumerable<IOperation> EnumerateBlockOps(BasicBlock block)
-    {
-        foreach (var op in block.Operations)
-        {
-            foreach (var d in EnumerateAllOps(op))
-                yield return d;
-        }
-        if (block.BranchValue is not null)
-        {
-            foreach (var d in EnumerateAllOps(block.BranchValue))
-                yield return d;
-        }
-    }
-
-    private static IEnumerable<IOperation> EnumerateAllOps(IOperation op)
-    {
-        yield return op;
-        foreach (var child in op.ChildOperations)
-        {
-            if (child is null) continue;
-            foreach (var d in EnumerateAllOps(child))
-                yield return d;
-        }
-    }
 }

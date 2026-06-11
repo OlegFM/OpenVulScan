@@ -59,12 +59,8 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
 
         state = ApplyPhis(state, block);
 
-        foreach (var op in block.Operations.SelectMany(EnumerateOps))
+        foreach (var op in OperationTree.Enumerate(block))
             state = Apply(state, op);
-
-        if (block.BranchValue is not null)
-            foreach (var op in EnumerateOps(block.BranchValue))
-                state = Apply(state, op);
 
         return state;
     }
@@ -128,15 +124,5 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
         var use = _ssa.UseAt(op, key);
         if (use is null) return NullState.Unknown;
         return state.TryGetValue(use.Value, out var s) ? s : NullState.Unknown;
-    }
-
-    private static IEnumerable<IOperation> EnumerateOps(IOperation op)
-    {
-        yield return op;
-        foreach (var child in op.ChildOperations)
-        {
-            if (child is null) continue;
-            foreach (var d in EnumerateOps(child)) yield return d;
-        }
     }
 }

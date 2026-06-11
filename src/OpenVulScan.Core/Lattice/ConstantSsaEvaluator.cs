@@ -14,7 +14,7 @@ namespace OpenVulScan;
 /// concrete <see cref="bool"/> values when all referenced operands are constant.
 /// </para>
 /// </remarks>
-internal static class ConstantSsaEvaluator
+public static class ConstantSsaEvaluator
 {
     public static ConstantLatticeValue Evaluate(
         IOperation? operation,

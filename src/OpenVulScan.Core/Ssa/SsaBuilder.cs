@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -69,7 +68,7 @@ public static class SsaBuilder
         var current = new Dictionary<TrackedKey, SsaId>();
 
         // Pass 0: define parameters at entry block, version 0.
-        var methodSymbol = TryGetMethodSymbol(model);
+        var methodSymbol = TryGetMethodSymbol(cfg, model);
         if (methodSymbol is not null)
         {
             foreach (var p in methodSymbol.Parameters)
@@ -185,15 +184,11 @@ public static class SsaBuilder
         return map;
     }
 
-    private static IMethodSymbol? TryGetMethodSymbol(SemanticModel model)
+    private static IMethodSymbol? TryGetMethodSymbol(ControlFlowGraph cfg, SemanticModel model)
     {
-        // Same heuristic used in Task 6: pick the first method declaration in the syntax tree.
-        // Snippets used by the test harness contain a single method; this is sufficient for now.
-        var methodSyntax = model.SyntaxTree.GetRoot()
-            .DescendantNodes()
-            .OfType<MethodDeclarationSyntax>()
-            .FirstOrDefault();
-        return methodSyntax is null ? null : model.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
+        // The CFG's original operation points at the analysed member's declaration syntax;
+        // resolving from it keeps multi-method files from seeding another method's parameters.
+        return model.GetDeclaredSymbol(cfg.OriginalOperation.Syntax) as IMethodSymbol;
     }
 
     private static TrackedKey? TryGetDefinitionKey(
@@ -204,6 +199,9 @@ public static class SsaBuilder
         {
             case IVariableDeclaratorOperation { Symbol: ILocalSymbol local }:
                 return new TrackedKey.Symbol(local);
+            // `out var x` argument: the declaration expression is the write site.
+            case IDeclarationExpressionOperation { Expression: ILocalReferenceOperation declRef }:
+                return new TrackedKey.Symbol(declRef.Local);
             case ISimpleAssignmentOperation { Target: ILocalReferenceOperation lref }:
                 return new TrackedKey.Symbol(lref.Local);
             case ISimpleAssignmentOperation { Target: IParameterReferenceOperation pref }:

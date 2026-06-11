@@ -11,11 +11,14 @@ namespace OpenVulScan.Tests.Ssa;
 internal static class CfgTestHarness
 {
     /// <summary>
-    /// Compiles <paramref name="snippet"/> and returns the CFG for its first method declaration.
-    /// The snippet must contain at least one regular method body; the first method in source order
-    /// is used. Constructor bodies and expression-bodied properties are not supported.
+    /// Compiles <paramref name="snippet"/> and returns the CFG for its first method declaration,
+    /// or for the method named <paramref name="methodName"/> when given. The snippet must contain
+    /// at least one regular method body. Constructor bodies and expression-bodied properties are
+    /// not supported.
     /// </summary>
-    public static (ControlFlowGraph Cfg, SemanticModel Model, IMethodBodyOperation Body) Compile(string snippet)
+    public static (ControlFlowGraph Cfg, SemanticModel Model, IMethodBodyOperation Body) Compile(
+        string snippet,
+        string? methodName = null)
     {
         var tree = CSharpSyntaxTree.ParseText(snippet);
         var compilation = CSharpCompilation.Create(
@@ -25,7 +28,8 @@ internal static class CfgTestHarness
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var model = compilation.GetSemanticModel(tree);
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First();
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .First(m => methodName is null || m.Identifier.ValueText == methodName);
         var op = model.GetOperation(method) ?? throw new InvalidOperationException("No IOperation for method.");
         if (op is not IMethodBodyOperation body)
         {

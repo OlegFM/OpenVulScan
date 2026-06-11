@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -104,8 +103,12 @@ public class AnalyzeCommandTests
         Assert.Equal(2, result);
     }
 
+    // No wall-clock assert here: a cold MSBuildWorkspace load on a shared CI
+    // runner varied 11s..31s across two days (5s and 30s budgets both broke).
+    // Hangs are caught by the workflow-level timeout; a real perf budget needs
+    // a dedicated benchmark, not an integration test.
     [Fact]
-    public async Task AnalyzeSyntheticProjectCompletesInLessThan30Seconds()
+    public async Task AnalyzeSyntheticProjectSucceeds()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
@@ -119,7 +122,6 @@ public class AnalyzeCommandTests
         try
         {
             using var stream = new MemoryStream();
-            var sw = Stopwatch.StartNew();
 
             var result = await AnalyzeCommandHandler.ExecuteAsync(new AnalyzeOptions
             {
@@ -131,12 +133,7 @@ public class AnalyzeCommandTests
                 Suppress = null,
             }, stream, CancellationToken.None);
 
-            sw.Stop();
             Assert.Equal(0, result);
-            // Smoke-test budget: a cold MSBuildWorkspace load is machine-dependent
-            // (11s observed locally, CI runners are slower); real hangs are caught
-            // by the workflow-level timeout.
-            Assert.True(sw.Elapsed < TimeSpan.FromSeconds(30), $"Analysis took {sw.Elapsed.TotalSeconds}s, expected < 30s");
         }
         finally
         {

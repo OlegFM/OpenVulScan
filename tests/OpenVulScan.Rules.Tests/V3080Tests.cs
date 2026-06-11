@@ -135,4 +135,32 @@ class C
         var n = s.Length;
     }
 }");
+
+    // Capture conservativeness (ovs-tr6): a flow capture whose arms carry
+    // different values must join to Unknown at the consumer, never to a
+    // definite state that would produce a false positive.
+
+    [Fact]
+    public Task CoalesceOfUnknownArmsIsSilent() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3080", "coalesce_unknown_arms_silent", @"
+class C
+{
+    void M(string a, string b)
+    {
+        var s = a ?? b;
+        var n = s.Length;
+    }
+}");
+
+    [Fact]
+    public Task TernaryOfUnknownArmsIsSilent() => SnapshotTestHarness.RunRuleSnapshotAsync(
+        "V3080", "ternary_unknown_arms_silent", @"
+class C
+{
+    void M(bool c, string a, string b)
+    {
+        var s = c ? a : b;
+        var n = s.Length;
+    }
+}");
 }

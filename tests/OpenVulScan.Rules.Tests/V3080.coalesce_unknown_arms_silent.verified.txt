@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: coalesce_unknown_arms_silent,
+  Source:
+class C
+{
+    void M(string a, string b)
+    {
+        var s = a ?? b;
+        var n = s.Length;
+    }
+}
+}

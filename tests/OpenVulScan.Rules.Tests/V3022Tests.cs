@@ -233,6 +233,32 @@ class C
         Assert.NotNull(diagnostics);
     }
 
+    /// <summary>
+    /// Capture conservativeness (ovs-tr6): the ternary's flow capture carries a
+    /// different constant in each arm, so the phi join must yield an unknown
+    /// value — <c>x == 5</c> is neither always true nor always false.
+    /// </summary>
+    [Fact]
+    public void TernaryWithDifferentConstantArmsProducesNoDiagnostic()
+    {
+        var source = @"
+class C
+{
+    void M(bool c)
+    {
+        var x = c ? 5 : 6;
+        if (x == 5) { }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        Assert.Empty(diagnostics);
+    }
+
     [Fact]
     public void CrossBranchInvariantDetected()
     {

@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: ternary_unknown_arms_silent,
+  Source:
+class C
+{
+    void M(bool c, string a, string b)
+    {
+        var s = c ? a : b;
+        var n = s.Length;
+    }
+}
+}

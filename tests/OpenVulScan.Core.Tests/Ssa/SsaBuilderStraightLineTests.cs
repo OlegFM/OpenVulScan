@@ -1,8 +1,7 @@
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FlowAnalysis;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
@@ -24,9 +23,7 @@ class C
 }");
         var index = SsaBuilder.Build(cfg, model);
 
-        var defs = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateAllOps)
+        var defs = AllOps(cfg)
             .Select(op => index.DefinitionAt(op))
             .Where(id => id is not null)
             .Select(id => id!.Value)
@@ -74,9 +71,7 @@ class C
 }");
         var index = SsaBuilder.Build(cfg, model);
 
-        var defs = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateAllOps)
+        var defs = AllOps(cfg)
             .Select(op => index.DefinitionAt(op))
             .Where(id => id is not null)
             .Select(id => id!.Value)
@@ -95,25 +90,12 @@ class C
 
         // No phantom use should be recorded for the Target lref of `x++`.
         // Find the x++ operation and its Target child; UseAt on the Target should return null.
-        var incrementOp = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateAllOps)
+        var incrementOp = AllOps(cfg)
             .OfType<Microsoft.CodeAnalysis.Operations.IIncrementOrDecrementOperation>()
             .First();
         var targetChild = incrementOp.Target;
         var lref = (Microsoft.CodeAnalysis.Operations.ILocalReferenceOperation)targetChild;
         var key = new TrackedKey.Symbol(lref.Local);
         Assert.Null(index.UseAt(targetChild, key));
-    }
-
-    private static IEnumerable<IOperation> EnumerateAllOps(IOperation op)
-    {
-        yield return op;
-        foreach (var child in op.ChildOperations)
-        {
-            if (child is null) continue;
-            foreach (var d in EnumerateAllOps(child))
-                yield return d;
-        }
     }
 }

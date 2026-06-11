@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,6 +11,13 @@ namespace OpenVulScan.Tests.Ssa;
 
 internal static class CfgTestHarness
 {
+    /// <summary>
+    /// Enumerates every operation in the CFG depth-first pre-order,
+    /// including block branch values.
+    /// </summary>
+    public static IEnumerable<IOperation> AllOps(ControlFlowGraph cfg)
+        => cfg.Blocks.SelectMany(OperationTree.Enumerate);
+
     /// <summary>
     /// Compiles <paramref name="snippet"/> and returns the CFG for its first method declaration,
     /// or for the method named <paramref name="methodName"/> when given. The snippet must contain

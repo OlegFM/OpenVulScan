@@ -1,37 +1,12 @@
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
 public class SsaIndexDefSiteTests
 {
-    private static IEnumerable<IOperation> AllOps(ControlFlowGraph cfg)
-    {
-        foreach (var block in cfg.Blocks)
-        {
-            var roots = block.BranchValue is null
-                ? block.Operations
-                : block.Operations.Concat(new[] { block.BranchValue });
-            foreach (var op in roots)
-            {
-                foreach (var d in Descend(op)) yield return d;
-            }
-        }
-
-        static IEnumerable<IOperation> Descend(IOperation op)
-        {
-            yield return op;
-            foreach (var child in op.ChildOperations)
-            {
-                if (child is null) continue;
-                foreach (var d in Descend(child)) yield return d;
-            }
-        }
-    }
 
     [Fact]
     public void DefSiteOf_AssignmentDef_RoundTrips()

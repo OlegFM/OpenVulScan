@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
@@ -25,9 +24,7 @@ class C
 }");
         var index = SsaBuilder.Build(cfg, model);
 
-        var captureOp = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateOps)
+        var captureOp = AllOps(cfg)
             .OfType<IFlowCaptureOperation>()
             .FirstOrDefault();
         Assert.NotNull(captureOp);
@@ -53,17 +50,13 @@ class C
 
         // Every IFlowCaptureOperation should have a corresponding use
         // somewhere among IFlowCaptureReferenceOperation sites.
-        var captures = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateOps)
+        var captures = AllOps(cfg)
             .OfType<IFlowCaptureOperation>()
             .ToList();
 
         Assert.NotEmpty(captures);
 
-        var captureRefs = cfg.Blocks
-            .SelectMany(b => b.Operations.SelectMany(EnumerateOps)
-                .Concat(b.BranchValue is not null ? EnumerateOps(b.BranchValue) : []))
+        var captureRefs = AllOps(cfg)
             .OfType<IFlowCaptureReferenceOperation>()
             .ToList();
 
@@ -207,28 +200,5 @@ class C
                 phi.Result.Key is TrackedKey.Symbol sym && sym.Variable.Name == "x");
 
         Assert.NotNull(phiForX);
-    }
-
-    private static IEnumerable<IOperation> AllOps(ControlFlowGraph cfg)
-    {
-        foreach (var block in cfg.Blocks)
-        {
-            foreach (var op in block.Operations)
-                foreach (var d in EnumerateOps(op))
-                    yield return d;
-            if (block.BranchValue is not null)
-                foreach (var d in EnumerateOps(block.BranchValue))
-                    yield return d;
-        }
-    }
-
-    private static IEnumerable<IOperation> EnumerateOps(IOperation op)
-    {
-        yield return op;
-        foreach (var c in op.ChildOperations)
-        {
-            if (c is null) continue;
-            foreach (var d in EnumerateOps(c)) yield return d;
-        }
     }
 }

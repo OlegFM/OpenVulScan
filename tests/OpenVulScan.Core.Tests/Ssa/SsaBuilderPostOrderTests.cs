@@ -1,37 +1,13 @@
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
 public class SsaBuilderPostOrderTests
 {
-    private static IEnumerable<IOperation> AllOps(ControlFlowGraph cfg)
-    {
-        foreach (var block in cfg.Blocks)
-        {
-            foreach (var op in block.Operations)
-                foreach (var d in Descend(op))
-                    yield return d;
-            if (block.BranchValue is not null)
-                foreach (var d in Descend(block.BranchValue))
-                    yield return d;
-        }
-
-        static IEnumerable<IOperation> Descend(IOperation op)
-        {
-            yield return op;
-            foreach (var child in op.ChildOperations)
-            {
-                if (child is null) continue;
-                foreach (var d in Descend(child)) yield return d;
-            }
-        }
-    }
-
     [Fact]
     public void FieldAssignFromThisCall_DefSurvivesRhsKill()
     {

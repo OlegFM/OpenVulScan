@@ -1,9 +1,7 @@
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
@@ -23,13 +21,8 @@ class C
 }");
         var index = SsaBuilder.Build(cfg, model);
 
-        var allOps = cfg.Blocks
-            .SelectMany(b => b.Operations)
-            .SelectMany(EnumerateAllOps)
-            .ToList();
-
         // The read of x in `var y = x` is the lref that is NOT the out-var declaration.
-        var readOfX = allOps
+        var readOfX = AllOps(cfg)
             .OfType<ILocalReferenceOperation>()
             .Single(l => l.Local.Name == "x" && l.Parent is not IDeclarationExpressionOperation);
 
@@ -41,16 +34,5 @@ class C
         var use = index.UseAt(readOfX, key);
         Assert.NotNull(use);
         Assert.Equal(0, use!.Value.Version);
-    }
-
-    private static IEnumerable<IOperation> EnumerateAllOps(IOperation op)
-    {
-        yield return op;
-        foreach (var child in op.ChildOperations)
-        {
-            if (child is null) continue;
-            foreach (var d in EnumerateAllOps(child))
-                yield return d;
-        }
     }
 }

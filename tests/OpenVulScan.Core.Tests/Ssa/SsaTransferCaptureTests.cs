@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FlowAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using Xunit;
+using static OpenVulScan.Tests.Ssa.CfgTestHarness;
 
 namespace OpenVulScan.Tests.Ssa;
 
@@ -97,27 +98,4 @@ class C
         => AllOps(cfg).OfType<ILocalReferenceOperation>().Select(l => l.Local)
             .Concat(AllOps(cfg).OfType<IVariableDeclaratorOperation>().Select(d => d.Symbol))
             .First(s => s.Name == name);
-
-    private static System.Collections.Generic.IEnumerable<IOperation> AllOps(ControlFlowGraph cfg)
-    {
-        foreach (var block in cfg.Blocks)
-        {
-            foreach (var op in block.Operations)
-                foreach (var d in Descend(op))
-                    yield return d;
-            if (block.BranchValue is not null)
-                foreach (var d in Descend(block.BranchValue))
-                    yield return d;
-        }
-
-        static System.Collections.Generic.IEnumerable<IOperation> Descend(IOperation op)
-        {
-            yield return op;
-            foreach (var child in op.ChildOperations)
-            {
-                if (child is null) continue;
-                foreach (var d in Descend(child)) yield return d;
-            }
-        }
-    }
 }

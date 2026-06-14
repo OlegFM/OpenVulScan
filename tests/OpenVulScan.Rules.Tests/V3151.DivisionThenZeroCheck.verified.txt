@@ -1,0 +1,25 @@
+﻿{
+  RuleCode: V3151,
+  TestCase: DivisionThenZeroCheck,
+  Source:
+class C {
+    int M(int a, int b) {
+        int r = a / b;
+        if (b == 0) { return 0; }
+        return r;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3151,
+      Message: Variable was used as a divisor before being compared to zero,
+      Severity: Warning,
+      Location: {
+        StartLine: 4,
+        StartColumn: 13,
+        EndLine: 4,
+        EndColumn: 19
+      }
+    }
+  ]
+}

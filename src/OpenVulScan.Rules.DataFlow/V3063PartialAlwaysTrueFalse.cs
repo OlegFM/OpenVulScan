@@ -23,6 +23,9 @@ public sealed class V3063PartialAlwaysTrueFalse : DataFlowRule<ImmutableDictiona
     public override ITransfer<ImmutableDictionary<SsaId, ConstantLatticeValue>> CreateTransfer(SsaIndex ssaIndex)
         => new ConstantSsaTransfer(ssaIndex);
 
+    public override IEdgeRefiner<ImmutableDictionary<SsaId, ConstantLatticeValue>>? CreateEdgeRefiner(SsaIndex ssaIndex)
+        => new ConstantSsaEdgeRefiner(ssaIndex);
+
     protected override void OnState(IOperation operation, ImmutableDictionary<SsaId, ConstantLatticeValue> state, DataFlowContext context)
     {
         ArgumentNullException.ThrowIfNull(operation);

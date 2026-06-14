@@ -158,8 +158,15 @@ class C
         Assert.Empty(diagnostics);
     }
 
+    /// <summary>
+    /// Path-sensitive narrowing (ovs-tr6, <see cref="ConstantSsaEdgeRefiner"/>): with
+    /// <c>b</c> definitely true, the short-circuit <c>!b</c> never falls through, so the
+    /// second operand is unreachable. The edge refiner narrows <c>b</c> to ⊥ on that
+    /// (infeasible) edge, eliminating the previous misdirected "always true" report —
+    /// the second <c>b</c>, if it were ever reached, would be false, not true.
+    /// </summary>
     [Fact]
-    public void NegatedKnownConstantInAndExpressionDetected()
+    public void NegatedKnownConstantInAndExpressionSecondOperandUnreachable()
     {
         var source = @"
 class C
@@ -176,9 +183,35 @@ class C
 
         var diagnostics = dispatcher.Run(CancellationToken.None);
 
-        // CFG lowers !b to b in first operand, only second b is detected
+        Assert.Empty(diagnostics);
+    }
+
+    /// <summary>
+    /// Path-sensitive narrowing (ovs-tr6): even when <c>b</c> is an unknown parameter, the
+    /// edge into the second operand of <c>!b &amp;&amp; b</c> is only taken when <c>!b</c> is
+    /// true, i.e. <c>b == false</c>. The refiner narrows <c>b</c> to Const(false) on that
+    /// edge, so the second <c>b</c> is reported as always false — a genuine contradiction
+    /// the straight-line analysis could not see.
+    /// </summary>
+    [Fact]
+    public void ContradictoryAndExpressionDetectsSecondOperandAlwaysFalse()
+    {
+        var source = @"
+class C
+{
+    void M(bool b)
+    {
+        if (!b && b) { }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3063PartialAlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
         Assert.Single(diagnostics);
         Assert.Equal("V3063", diagnostics[0].Id);
-        Assert.Contains("always true", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        Assert.Contains("always false", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 }

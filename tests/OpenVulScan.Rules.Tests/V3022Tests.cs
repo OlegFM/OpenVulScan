@@ -259,6 +259,70 @@ class C
         Assert.Empty(diagnostics);
     }
 
+    /// <summary>
+    /// Path-sensitive narrowing (ovs-tr6, <see cref="ConstantSsaEdgeRefiner"/>): an
+    /// equality guard narrows the parameter to a known constant on the then-edge, so a
+    /// nested re-test of the same equality folds to always-true. Without the edge refiner
+    /// the parameter stays unknown and neither condition is reported.
+    /// </summary>
+    [Fact]
+    public void NestedEqualityGuardFoldsInnerCondition()
+    {
+        var source = @"
+class C
+{
+    void M(int x)
+    {
+        if (x == 5)
+        {
+            if (x == 5) { }
+        }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        // Outer `x == 5` is unknown (x is a parameter); only the inner re-test folds.
+        Assert.Single(diagnostics);
+        Assert.Equal("V3022", diagnostics[0].Id);
+        Assert.Contains("always true", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Meet conservativeness (ovs-tr6): the outer guard is always false (x is 7), so its
+    /// then-branch is infeasible. The solver still visits that block, so the edge refiner
+    /// must meet x to ⊥ — not overwrite it with Const(5) — to keep the dead inner
+    /// `x == 5` from being mis-reported as always true. Only the outer always-false fires.
+    /// </summary>
+    [Fact]
+    public void ContradictoryGuardDoesNotDoubleReport()
+    {
+        var source = @"
+class C
+{
+    void M()
+    {
+        int x = 7;
+        if (x == 5)
+        {
+            if (x == 5) { }
+        }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        Assert.Single(diagnostics);
+        Assert.Equal("V3022", diagnostics[0].Id);
+        Assert.Contains("always false", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CrossBranchInvariantDetected()
     {

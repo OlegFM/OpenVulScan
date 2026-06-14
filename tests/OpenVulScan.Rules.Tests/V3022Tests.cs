@@ -323,6 +323,36 @@ class C
         Assert.Contains("always false", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Assignment-as-expression precision (ovs-tr6): the value of <c>(x = 42)</c> is 42, so
+    /// <c>z</c> binds the constant flowing through the nested assignment. Without the
+    /// <see cref="ISimpleAssignmentOperation"/> case in the SSA evaluator, <c>z</c> degrades
+    /// to ⊤ and the always-true condition is missed.
+    /// </summary>
+    [Fact]
+    public void NestedAssignmentExpressionPropagatesConstant()
+    {
+        var source = @"
+class C
+{
+    void M()
+    {
+        int x;
+        int z = (x = 42);
+        if (z == 42) { }
+    }
+}";
+        var compilation = CreateTestCompilation(source);
+        var rule = new V3022AlwaysTrueFalse();
+        var dispatcher = new DataFlowRuleDispatcher<ImmutableDictionary<SsaId, ConstantLatticeValue>>(new[] { rule }, compilation);
+
+        var diagnostics = dispatcher.Run(CancellationToken.None);
+
+        Assert.Single(diagnostics);
+        Assert.Equal("V3022", diagnostics[0].Id);
+        Assert.Contains("always true", diagnostics[0].GetMessage(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CrossBranchInvariantDetected()
     {

@@ -141,6 +141,44 @@ class C
     }
 
     // ------------------------------------------------------------------
+    // Assignment-as-expression precision (ovs-tr6)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// The value of an assignment expression <c>(x = null)</c> is the assigned value, so
+    /// <c>object z = (x = null);</c> must bind <see cref="NullState.DefinitelyNull"/> to z.
+    /// Before the <see cref="ISimpleAssignmentOperation"/> case was added to
+    /// <c>NullStateSsaTransfer.Evaluate</c>, the nested assignment degraded to Unknown.
+    /// </summary>
+    [Fact]
+    public void AssignmentExpression_PropagatesAssignedNull()
+    {
+        var (cfg, model, _) = CfgTestHarness.Compile(@"
+class C
+{
+    void M()
+    {
+        object x;
+        object z = (x = null);
+        var n = z;
+    }
+}");
+        var index = SsaBuilder.Build(cfg, model);
+        var state = RunTransfer(cfg, index);
+
+        var zSym = AllOps(cfg)
+            .OfType<IVariableDeclaratorOperation>()
+            .Select(d => d.Symbol)
+            .Concat(AllOps(cfg).OfType<ILocalReferenceOperation>().Select(l => l.Local))
+            .First(sym => sym.Name == "z");
+
+        var zVersions = index.AllVersions(new TrackedKey.Symbol(zSym));
+        Assert.NotEmpty(zVersions);
+
+        Assert.Equal(NullState.DefinitelyNull, state[zVersions[0]]);
+    }
+
+    // ------------------------------------------------------------------
     // Test 5 – value-type default: Unknown
     // ------------------------------------------------------------------
 

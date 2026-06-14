@@ -113,6 +113,9 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
             IArrayCreationOperation => NullState.NotNull,
             IConversionOperation conv => Evaluate(conv.Operand, state),
             IParenthesizedOperation paren => Evaluate(paren.Operand, state),
+            // The value of an assignment expression `(x = v)` is v; propagate it so
+            // `(x = null) ?? …` and `(s = expr) != null` see the flowing null-state.
+            ISimpleAssignmentOperation assign => Evaluate(assign.Value, state),
             IFlowCaptureReferenceOperation cref =>
                 Lookup(cref, new TrackedKey.Capture(cref.Id), state),
             _ => NullState.Unknown,

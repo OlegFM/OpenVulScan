@@ -100,6 +100,9 @@ public sealed class ConstantSsaTransfer : ITransfer<ImmutableDictionary<SsaId, C
                 Lookup(fref, new TrackedKey.InstanceField(fref.Field), state),
             IConversionOperation conv => Evaluate(conv.Operand, state),
             IParenthesizedOperation paren => Evaluate(paren.Operand, state),
+            // The value of an assignment expression `(x = v)` is v; propagate it so
+            // `int z = (x = 42)` and `(x = v) ?? …` bind the flowing constant.
+            ISimpleAssignmentOperation assign => Evaluate(assign.Value, state),
             IFlowCaptureReferenceOperation cref =>
                 Lookup(cref, new TrackedKey.Capture(cref.Id), state),
             _ => ConstantLatticeValue.Top,

@@ -1,0 +1,24 @@
+{
+  RuleCode: V3142,
+  TestCase: CodeAfterReturn,
+  Source:
+class C {
+    void M() {
+        return;
+        int x = 1;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3142,
+      Message: Unreachable code detected,
+      Severity: Warning,
+      Location: {
+        StartLine: 4,
+        StartColumn: 9,
+        EndLine: 4,
+        EndColumn: 19
+      }
+    }
+  ]
+}

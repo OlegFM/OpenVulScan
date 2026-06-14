@@ -149,6 +149,8 @@ public static class SsaBuilder
             kv => kv.Key,
             kv => kv.Value.ToImmutableArray());
 
+        AssertPhiInvariants(phisBuilder);
+
         return new SsaIndex(
             definitions.ToImmutable(),
             uses.ToImmutable(),
@@ -158,6 +160,31 @@ public static class SsaBuilder
     }
 
     // --- helpers ---
+
+    /// <summary>
+    /// Debug-only structural invariant (S-4): every φ joins versions of the <em>same</em>
+    /// variable, so each operand's <see cref="SsaId.Key"/> must equal the φ-result's key.
+    /// A violation means versioning or φ-placement bound a value across distinct keys — the
+    /// kind of regression the multi-def capture φs (S-2) made possible. Compiled out of
+    /// Release; no effect on shipped analysis.
+    /// </summary>
+    [System.Diagnostics.Conditional("DEBUG")]
+    private static void AssertPhiInvariants(
+        ImmutableDictionary<BasicBlock, ImmutableArray<Phi>>.Builder phis)
+    {
+        foreach (var blockPhis in phis.Values)
+        {
+            foreach (var phi in blockPhis)
+            {
+                foreach (var operand in phi.Operands)
+                {
+                    System.Diagnostics.Debug.Assert(
+                        phi.Result.Key.Equals(operand.Version.Key),
+                        $"φ-result {phi.Result.Key} joins a mismatched operand key {operand.Version.Key}.");
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Scans the CFG for l-value captures: <c>FlowCaptureOperation(id, LocalRef(x))</c>

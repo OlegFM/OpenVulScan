@@ -1,0 +1,25 @@
+﻿{
+  RuleCode: V3114,
+  TestCase: DirectLeak,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} }
+class C {
+    void M() {
+        var r = new Res();
+        r.Use();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3114,
+      Message: IDisposable object is created but not disposed on all paths before the method returns,
+      Severity: Warning,
+      Location: {
+        StartLine: 4,
+        StartColumn: 13,
+        EndLine: 4,
+        EndColumn: 26
+      }
+    }
+  ]
+}

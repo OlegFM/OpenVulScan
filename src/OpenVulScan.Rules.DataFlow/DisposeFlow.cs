@@ -106,8 +106,25 @@ internal static class DisposeFlow
         }
 
         // Escape pre-filter: drop any candidate that escapes the method anywhere.
+        //
+        // Two cases:
+        //  (a) operation-parent escape — the standard path: parent is IReturnOperation,
+        //      IArgumentOperation, or assignment-to-field/property.
+        //  (b) branch-value return escape — in Roslyn's CFG a `return expr;` lowers to the
+        //      block's BranchValue with FallThroughSuccessor.Semantics == Return, without an
+        //      IReturnOperation wrapper. The BranchValue's Parent is null in the CFG, so we
+        //      must detect this case by checking the block's branch semantics.
         foreach (var block in cfg.Blocks)
         {
+            // (b) Branch-value return: BranchValue with Return semantics.
+            if (block.BranchValue is ILocalReferenceOperation returnRef
+                && block.FallThroughSuccessor?.Semantics == ControlFlowBranchSemantics.Return)
+            {
+                var key = new TrackedKey.Symbol(returnRef.Local);
+                sites.Remove(key);
+            }
+
+            // (a) Operation-parent escape.
             foreach (var op in OperationTree.Enumerate(block))
             {
                 if (op is ILocalReferenceOperation { Local: var refLocal } reference)
@@ -116,6 +133,24 @@ internal static class DisposeFlow
                     if (sites.ContainsKey(key) && Escapes(reference))
                         sites.Remove(key);
                 }
+            }
+        }
+
+        // Finally-dispose pre-filter: a resource disposed inside a finally block is guaranteed
+        // to be disposed on ALL paths (finally always runs). Roslyn's CFG models finally blocks
+        // as StructuredExceptionHandling branches — they are NOT on the normal predecessor path
+        // to the Exit block, so the worklist solver cannot see them. We compensate by removing
+        // any resource that has an explicit Dispose() in a finally block from the tracked set
+        // (it is safe from a leak perspective).
+        foreach (var block in cfg.Blocks)
+        {
+            if (block.FallThroughSuccessor?.Semantics != ControlFlowBranchSemantics.StructuredExceptionHandling)
+                continue;
+
+            foreach (var op in OperationTree.Enumerate(block))
+            {
+                if (TryGetDisposedResource(op) is { } disposed)
+                    sites.Remove(disposed);
             }
         }
 

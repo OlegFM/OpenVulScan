@@ -1,4 +1,3 @@
-// src/OpenVulScan.Rules.DataFlow/DisposeFlow.cs
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -25,18 +24,7 @@ internal static class DisposeFlow
         var iDisposable = compilation.GetTypeByMetadataName("System.IDisposable");
         var iAsyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
 
-        if (SymbolEqualityComparer.Default.Equals(type, iDisposable)
-            || SymbolEqualityComparer.Default.Equals(type, iAsyncDisposable))
-            return true;
-
-        foreach (var iface in type.AllInterfaces)
-        {
-            if (SymbolEqualityComparer.Default.Equals(iface, iDisposable)
-                || SymbolEqualityComparer.Default.Equals(iface, iAsyncDisposable))
-                return true;
-        }
-
-        return false;
+        return ImplementsDisposable(type, iDisposable, iAsyncDisposable);
     }
 
     /// <summary>
@@ -44,6 +32,7 @@ internal static class DisposeFlow
     /// parameter, or instance field, returns the resource's <see cref="TrackedKey"/>.
     /// Conversions and parentheses on the receiver are unwrapped, so the lowered
     /// <c>((IDisposable)x).Dispose()</c> form (and explicit casts) are recognised.
+    /// Only the parameterless overloads are matched, so <c>Dispose(bool)</c> is ignored.
     /// </summary>
     public static TrackedKey? TryGetDisposedResource(IOperation op)
     {
@@ -52,6 +41,9 @@ internal static class DisposeFlow
 
         var name = inv.TargetMethod.Name;
         if (name is not ("Dispose" or "DisposeAsync"))
+            return null;
+
+        if (!inv.TargetMethod.Parameters.IsEmpty)
             return null;
 
         if (inv.Instance is null)
@@ -137,13 +129,33 @@ internal static class DisposeFlow
     public static IReadOnlyList<IFieldSymbol> CollectDisposableFields(
         INamedTypeSymbol classSymbol, Compilation compilation)
     {
+        var iDisposable = compilation.GetTypeByMetadataName("System.IDisposable");
+        var iAsyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
+
         return classSymbol.GetMembers()
             .OfType<IFieldSymbol>()
-            .Where(f => !f.IsStatic && !f.IsConst && ImplementsDisposable(f.Type, compilation))
+            .Where(f => !f.IsStatic && !f.IsConst && ImplementsDisposable(f.Type, iDisposable, iAsyncDisposable))
             .ToList();
     }
 
     // --- helpers ---
+
+    private static bool ImplementsDisposable(
+        ITypeSymbol type, INamedTypeSymbol? iDisposable, INamedTypeSymbol? iAsyncDisposable)
+    {
+        if (SymbolEqualityComparer.Default.Equals(type, iDisposable)
+            || SymbolEqualityComparer.Default.Equals(type, iAsyncDisposable))
+            return true;
+
+        foreach (var iface in type.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(iface, iDisposable)
+                || SymbolEqualityComparer.Default.Equals(iface, iAsyncDisposable))
+                return true;
+        }
+
+        return false;
+    }
 
     private static bool IsObjectCreation(IOperation value)
         => Unwrap(value) is IObjectCreationOperation;
@@ -162,6 +174,12 @@ internal static class DisposeFlow
 
     private static bool Escapes(ILocalReferenceOperation reference)
     {
+        // A resource handed out via `yield return` transfers ownership to the caller iterator;
+        // check syntactically before climbing the operation tree.
+        if (reference.Syntax.FirstAncestorOrSelf<YieldStatementSyntax>() is { } y
+            && y.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.YieldReturnStatement))
+            return true;
+
         var parent = reference.Parent;
         while (parent is IConversionOperation or IParenthesizedOperation)
             parent = parent.Parent;

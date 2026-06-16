@@ -137,9 +137,20 @@ Each rule = one file named after its code (`V3114NotDisposedBeforeReturn.cs`, et
 transfer treats as ordinary disposes. Because `finally` executes on every path, dispose-in-finally
 correctly yields `Disposed` on all paths.
 
-**This lowering assumption must be validated by the first TDD test** — it is an assumption, not an
-asserted fact. If the CFG keeps an `IUsingOperation` instead, the transfer gains an explicit
-`using`-resource case.
+**This lowering assumption was validated empirically by a CFG probe (2026-06-17).** The CFG does
+lower `using`/`using`-declarations into a `finally` region with an explicit `Dispose` invocation —
+but with two refinements the probe revealed:
+
+1. The lowered invocation's `Instance` is an `IConversionOperation` (`((IDisposable)s).Dispose()`),
+   not a bare `ILocalReferenceOperation` — dispose classification **must unwrap conversions**.
+2. The lowered `finally` carries a null-guard (`if (s != null) ((IDisposable)s).Dispose()`). On the
+   `s == null` skip path the resource stays `Open`, so `Join(Disposed, Open) = Open` at Exit would
+   **false-positive V3114 on a correct `using`**.
+
+**Resolution (KISS, matches PVS V3114):** for the leak rules, **exclude `using`-variables from
+tracking entirely** (a `using` disposes by construction) and count only **explicit `Dispose()`
+calls written by the developer**. A manual `try/finally { s.Dispose(); }` yields a direct
+`ILocalReferenceOperation` instance (no null-guard) and is still correctly recognised as disposed.
 
 ## 8. Testing
 

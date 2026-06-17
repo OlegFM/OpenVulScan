@@ -1,0 +1,10 @@
+﻿{
+  RuleCode: V3073,
+  TestCase: FieldDisposedViaThis,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} }
+class C : System.IDisposable {
+    private Res _a = new Res();
+    public void Dispose() { this._a.Dispose(); }
+}
+}

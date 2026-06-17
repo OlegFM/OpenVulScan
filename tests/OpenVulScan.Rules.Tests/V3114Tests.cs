@@ -88,4 +88,14 @@ public class V3114Tests
             }
         }
         """);
+
+    [Fact] // NO FLAG: null-conditional dispose disposes on all paths.
+    public Task NullConditionalDisposeNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "NullConditionalDisposeNoFlag", Res + """
+        class C {
+            void M() {
+                var r = new Res();
+                r?.Dispose();
+            }
+        }
+        """);
 }

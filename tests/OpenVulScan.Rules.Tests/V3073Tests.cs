@@ -63,4 +63,21 @@ public class V3073Tests
             public void Dispose() { this._a.Dispose(); }
         }
         """);
+
+    [Fact] // NO FLAG: null-conditional dispose of the field (disposes on all paths).
+    public Task NullConditionalDisposedNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "NullConditionalDisposedNoFlag", Res + """
+        class C : System.IDisposable {
+            private Res _a = new Res();
+            public void Dispose() { _a?.Dispose(); }
+        }
+        """);
+
+    [Fact] // NO FLAG: canonical Dispose(bool) pattern — parameterless Dispose() delegates.
+    public Task DisposePatternNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "DisposePatternNoFlag", Res + """
+        class C : System.IDisposable {
+            private Res _a = new Res();
+            public void Dispose() { Dispose(true); }
+            protected virtual void Dispose(bool disposing) { if (disposing) { _a.Dispose(); } }
+        }
+        """);
 }

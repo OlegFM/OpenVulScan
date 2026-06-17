@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FlowAnalysis;
@@ -37,12 +38,20 @@ public sealed class V3073MembersNotDisposed : AstRule
             return;
         if (method.Identifier.Text != "Dispose")  // DisposeAsync is a documented follow-up.
             return;
-        if (context.SemanticModel.GetDeclaredSymbol(method, ct) is not { } methodSymbol)
+        if (context.SemanticModel.GetDeclaredSymbol(method, ct) is not IMethodSymbol methodSymbol)
+            return;
+        if (!methodSymbol.Parameters.IsEmpty)  // Only the parameterless Dispose() is the v1 entry point.
             return;
         if (methodSymbol.ContainingType is not { } classSymbol
             || !DisposeFlow.ImplementsDisposable(classSymbol, context.Compilation))
             return;
         if (context.SemanticModel.GetOperation(context.Node, ct) is not IMethodBodyOperation body)
+            return;
+
+        // Canonical dispose pattern: a parameterless Dispose() that delegates to a parameterised
+        // Dispose(bool) overload does its cleanup there, which v1 does not follow. Skip to avoid a
+        // false positive on the delegating method (documented v1 false negative).
+        if (DelegatesToDisposeOverload(body))
             return;
 
         var fields = DisposeFlow.CollectDisposableFields(classSymbol, context.Compilation);
@@ -51,9 +60,16 @@ public sealed class V3073MembersNotDisposed : AstRule
 
         var cfg = ControlFlowGraph.Create(body, ct);
 
-        var fieldKeys = fields.Select(f => (TrackedKey)new TrackedKey.InstanceField(f)).ToHashSet();
+        var nullConditional = DisposeFlow.CollectNullConditionalDisposed(body);
+        var trackedFields = fields
+            .Where(f => !nullConditional.Contains(new TrackedKey.InstanceField(f)))
+            .ToList();
+        if (trackedFields.Count == 0)
+            return;
+
+        var fieldKeys = trackedFields.Select(f => (TrackedKey)new TrackedKey.InstanceField(f)).ToHashSet();
         var seed = ImmutableDictionary.CreateRange(
-            fields.Select(f => new KeyValuePair<TrackedKey, OwnershipState>(
+            trackedFields.Select(f => new KeyValuePair<TrackedKey, OwnershipState>(
                 new TrackedKey.InstanceField(f), OwnershipState.Open)));
 
         var transfer = new ResourceOwnershipTransfer(fieldKeys, context.Compilation);
@@ -68,7 +84,7 @@ public sealed class V3073MembersNotDisposed : AstRule
 
         var exitState = result.InStates[exit];
 
-        foreach (var field in fields)
+        foreach (var field in trackedFields)
         {
             var key = (TrackedKey)new TrackedKey.InstanceField(field);
             if (exitState.TryGetValue(key, out var ownership) && ownership == OwnershipState.Open)
@@ -77,5 +93,16 @@ public sealed class V3073MembersNotDisposed : AstRule
                 context.ReportDiagnostic(Diagnostic.Create(s_descriptor, location, field.Name));
             }
         }
+    }
+
+    private static bool DelegatesToDisposeOverload(IOperation body)
+    {
+        foreach (var op in OperationTree.Enumerate(body))
+        {
+            if (op is IInvocationOperation { TargetMethod: { Name: "Dispose" } target } && !target.Parameters.IsEmpty)
+                return true;
+        }
+
+        return false;
     }
 }

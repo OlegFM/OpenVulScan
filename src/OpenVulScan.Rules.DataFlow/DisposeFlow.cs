@@ -158,7 +158,49 @@ internal static class DisposeFlow
             }
         }
 
+        // Null-conditional dispose pre-filter: `r?.Dispose()` lowers to `if (r != null) r.Dispose();`,
+        // whose null-skip path would leave the resource Open at the join (a false positive). Treat
+        // `?.Dispose()` as a dispose on all paths (null ⇒ nothing to leak) by dropping the resource.
+        foreach (var key in CollectNullConditionalDisposed(cfg))
+            sites.Remove(key);
+
         return sites;
+    }
+
+    /// <summary>
+    /// Keys of resources disposed via a null-conditional call (<c>x?.Dispose()</c>) anywhere in
+    /// <paramref name="cfg"/>. Such a dispose is safe on all paths (null ⇒ nothing to leak), so the
+    /// leak rules treat it as a full dispose and drop the resource from tracking.
+    /// </summary>
+    /// <remarks>
+    /// The search is performed on the unlowered <see cref="IOperation"/> tree rooted at
+    /// <paramref name="body"/> because Roslyn's CFG lowers <see cref="IConditionalAccessOperation"/>
+    /// into separate blocks, making parent-chain detection impossible in the CFG representation.
+    /// </remarks>
+    public static HashSet<TrackedKey> CollectNullConditionalDisposed(ControlFlowGraph cfg)
+    {
+        ArgumentNullException.ThrowIfNull(cfg);
+        // The CFG root operation preserves the unlowered tree: OriginalOperation is the
+        // IMethodBodyOperation that was passed to ControlFlowGraph.Create().
+        return CollectNullConditionalDisposed(cfg.OriginalOperation);
+    }
+
+    /// <summary>
+    /// Keys of resources disposed via a null-conditional call (<c>x?.Dispose()</c>) anywhere in
+    /// the unlowered operation tree rooted at <paramref name="body"/>.
+    /// </summary>
+    public static HashSet<TrackedKey> CollectNullConditionalDisposed(IOperation body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        var result = new HashSet<TrackedKey>();
+        foreach (var op in OperationTree.Enumerate(body))
+        {
+            if (TryGetNullConditionalDisposedResource(op) is { } key)
+                result.Add(key);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -209,6 +251,31 @@ internal static class DisposeFlow
                 new TrackedKey.InstanceField(f.Field),
             _ => null,
         };
+    }
+
+    /// <summary>
+    /// If <paramref name="op"/> is a null-conditional <c>Dispose()</c>/<c>DisposeAsync()</c>
+    /// (<c>x?.Dispose()</c>) on a local, parameter, or instance field, returns its key. The
+    /// receiver is recovered from the enclosing <see cref="IConditionalAccessOperation"/>.
+    /// </summary>
+    private static TrackedKey? TryGetNullConditionalDisposedResource(IOperation op)
+    {
+        if (op is not IInvocationOperation inv)
+            return null;
+        if (inv.TargetMethod.Name is not ("Dispose" or "DisposeAsync"))
+            return null;
+        if (!inv.TargetMethod.Parameters.IsEmpty)
+            return null;
+        if (inv.Instance is not IConditionalAccessInstanceOperation)
+            return null;
+
+        for (IOperation? p = inv.Parent; p is not null; p = p.Parent)
+        {
+            if (p is IConditionalAccessOperation conditional)
+                return ResolveResourceKey(conditional.Operation);
+        }
+
+        return null;
     }
 
     private static bool Escapes(ILocalReferenceOperation reference)

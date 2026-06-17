@@ -51,7 +51,10 @@ public sealed class V3114NotDisposedBeforeReturn : AstRule
 
         var result = solver.Solve(cfg, ct);
 
-        var exit = cfg.Blocks.First(b => b.Kind == BasicBlockKind.Exit);
+        var exit = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Exit);
+        if (exit is null)
+            return;
+
         var exitState = result.InStates[exit];
 
         foreach (var (key, location) in owned)

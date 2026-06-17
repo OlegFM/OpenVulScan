@@ -68,6 +68,16 @@ public class V3114Tests
         }
         """);
 
+    [Fact] // NO FLAG: returned via an interface upcast — ownership still escapes.
+    public Task ReturnCastNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "ReturnCastNoFlag", Res + """
+        class C {
+            System.IDisposable M() {
+                var r = new Res();
+                return (System.IDisposable)r;
+            }
+        }
+        """);
+
     [Fact] // NO FLAG: stored to a field — ownership escapes.
     public Task StoredToFieldNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "StoredToFieldNoFlag", Res + """
         class C {

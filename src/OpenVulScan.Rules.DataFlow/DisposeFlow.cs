@@ -117,8 +117,10 @@ internal static class DisposeFlow
         foreach (var block in cfg.Blocks)
         {
             // (b) Branch-value return: BranchValue with Return semantics.
-            if (block.BranchValue is ILocalReferenceOperation returnRef
-                && block.FallThroughSuccessor?.Semantics == ControlFlowBranchSemantics.Return)
+            // Unwrap conversions and parentheses so `return (IDisposable)r;` is recognised.
+            if (block.FallThroughSuccessor?.Semantics == ControlFlowBranchSemantics.Return
+                && block.BranchValue is not null
+                && Unwrap(block.BranchValue) is ILocalReferenceOperation returnRef)
             {
                 var key = new TrackedKey.Symbol(returnRef.Local);
                 sites.Remove(key);
@@ -136,12 +138,14 @@ internal static class DisposeFlow
             }
         }
 
-        // Finally-dispose pre-filter: a resource disposed inside a finally block is guaranteed
-        // to be disposed on ALL paths (finally always runs). Roslyn's CFG models finally blocks
-        // as StructuredExceptionHandling branches — they are NOT on the normal predecessor path
-        // to the Exit block, so the worklist solver cannot see them. We compensate by removing
-        // any resource that has an explicit Dispose() in a finally block from the tracked set
-        // (it is safe from a leak perspective).
+        // Finally-dispose pre-filter: Roslyn's CFG models finally blocks as
+        // StructuredExceptionHandling branches — they are NOT on the normal predecessor path to
+        // the Exit block, so the worklist solver never sees a finally Dispose(). We compensate by
+        // removing any resource that has a Dispose() call in a finally block from the tracked set.
+        //
+        // KNOWN LIMITATION (v1): this removes the resource even when the Dispose() is guarded by a
+        // condition inside the finally (e.g. `finally { if (c) r.Dispose(); }`), which is a false
+        // negative. A precise fix requires walking the SEH subgraph; tracked as a follow-up.
         foreach (var block in cfg.Blocks)
         {
             if (block.FallThroughSuccessor?.Semantics != ControlFlowBranchSemantics.StructuredExceptionHandling)

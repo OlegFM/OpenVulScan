@@ -149,8 +149,20 @@ but with two refinements the probe revealed:
 
 **Resolution (KISS, matches PVS V3114):** for the leak rules, **exclude `using`-variables from
 tracking entirely** (a `using` disposes by construction) and count only **explicit `Dispose()`
-calls written by the developer**. A manual `try/finally { s.Dispose(); }` yields a direct
-`ILocalReferenceOperation` instance (no null-guard) and is still correctly recognised as disposed.
+calls written by the developer**.
+
+**Correction (Task 4 TDD, 2026-06-17) — the original "dispose-in-finally yields Disposed on all
+paths" claim above is WRONG for the `WorklistSolver`.** The solver traverses only *normal*
+`block.Predecessors`; Roslyn connects a `finally` region by *exception* edges
+(`FallThroughSuccessor.Semantics == StructuredExceptionHandling`), so the `finally` block is not a
+normal predecessor of Exit and the solver never applies its `Dispose()`. Likewise `return r;` is
+lowered as `block.BranchValue` (an `ILocalReferenceOperation`, after `Unwrap`) with
+`FallThroughSuccessor.Semantics == Return`, with **no** `IReturnOperation` wrapper, so a
+parent-based escape check misses it. `DisposeFlow.CollectOwnedLocals` therefore adds two
+pre-filters: a branch-value-return escape, and a finally-dispose pre-filter that drops any resource
+disposed in a `StructuredExceptionHandling` block (finally always runs). **Known v1 FN:**
+`finally { if (c) r.Dispose(); }` is over-suppressed. A structural block-only CFG probe would not
+have surfaced this — it required running the solver. (Persisted to beads memory.)
 
 ## 8. Testing
 

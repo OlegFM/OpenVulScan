@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3178,
+  TestCase: UsingBodyNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} public int P { get; set; } }
+class C {
+    void M() {
+        using var r = new Res();
+        r.Use();
+    }
+}
+}

@@ -71,8 +71,9 @@ public sealed class V3178UseOfDisposedObject : AstRule
     {
         IInvocationOperation { Instance: { } instance } => ResolveResourceKey(instance),
         IPropertyReferenceOperation { Instance: { } instance } => ResolveResourceKey(instance),
-        IFieldReferenceOperation { Instance: ILocalReferenceOperation or IParameterReferenceOperation } f =>
-            ResolveResourceKey(f.Instance!),
+        // Aligned with the invocation/property arms: delegate to ResolveResourceKey so a
+        // conversion-wrapped receiver (e.g. ((IDisposable)r).Field) is unwrapped consistently.
+        IFieldReferenceOperation { Instance: { } instance } => ResolveResourceKey(instance),
         _ => null,
     };
 

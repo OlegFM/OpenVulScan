@@ -5,7 +5,7 @@
 sealed class Res : System.IDisposable { public void Dispose() {} }
 class C : System.IDisposable {
     private Res _a = new Res();
-    public void Dispose() { if (_a != null) { } }
+    public void Dispose() { if (_a != null) { _a.Dispose(); } }
 },
   Diagnostics: [
     {

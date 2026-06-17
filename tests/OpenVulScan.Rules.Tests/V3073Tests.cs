@@ -40,11 +40,11 @@ public class V3073Tests
         }
         """);
 
-    [Fact] // FLAG: disposed only on one branch => partial.
+    [Fact] // FLAG: field disposed on one branch only (null-guard wraps the dispose) ⇒ partial via join.
     public Task FieldPartiallyDisposed() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "FieldPartiallyDisposed", Res + """
         class C : System.IDisposable {
             private Res _a = new Res();
-            public void Dispose() { if (_a != null) { } }
+            public void Dispose() { if (_a != null) { _a.Dispose(); } }
         }
         """);
 

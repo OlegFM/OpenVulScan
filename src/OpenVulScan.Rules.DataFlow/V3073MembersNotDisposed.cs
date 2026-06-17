@@ -35,7 +35,7 @@ public sealed class V3073MembersNotDisposed : AstRule
         var ct = context.CancellationToken;
         if (context.Node is not MethodDeclarationSyntax method)
             return;
-        if (method.Identifier.Text != "Dispose")
+        if (method.Identifier.Text != "Dispose")  // DisposeAsync is a documented follow-up.
             return;
         if (context.SemanticModel.GetDeclaredSymbol(method, ct) is not { } methodSymbol)
             return;

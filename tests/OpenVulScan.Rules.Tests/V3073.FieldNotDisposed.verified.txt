@@ -1,0 +1,23 @@
+﻿{
+  RuleCode: V3073,
+  TestCase: FieldNotDisposed,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} }
+class C : System.IDisposable {
+    private Res _a = new Res();
+    public void Dispose() { }
+},
+  Diagnostics: [
+    {
+      Id: V3073,
+      Message: IDisposable member '_a' is not disposed on all paths in the Dispose method,
+      Severity: Warning,
+      Location: {
+        StartLine: 3,
+        StartColumn: 17,
+        EndLine: 3,
+        EndColumn: 19
+      }
+    }
+  ]
+}

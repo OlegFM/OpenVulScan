@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3114,
+  TestCase: ReturnedNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} }
+class C {
+    Res M() {
+        var r = new Res();
+        return r;
+    }
+}
+}

@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3178,
+  TestCase: DistinctObjectsNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} public int P { get; set; } }
+class C {
+    void M() {
+        var a = new Res();
+        var b = new Res();
+        a.Dispose();
+        b.Use();
+    }
+}
+}

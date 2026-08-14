@@ -1,0 +1,10 @@
+﻿{
+  RuleCode: V3073,
+  TestCase: NonDisposableFieldIgnored,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} }
+class C : System.IDisposable {
+    private int _n = 1;
+    public void Dispose() { }
+}
+}

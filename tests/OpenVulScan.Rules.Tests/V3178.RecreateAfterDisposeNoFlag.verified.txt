@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3178,
+  TestCase: RecreateAfterDisposeNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} public int P { get; set; } }
+class C {
+    void M() {
+        var r = new Res();
+        r.Dispose();
+        r = new Res();
+        r.Use();
+        r.Dispose();
+    }
+}
+}

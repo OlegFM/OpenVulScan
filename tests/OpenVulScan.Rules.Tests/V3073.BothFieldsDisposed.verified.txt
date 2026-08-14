@@ -1,0 +1,11 @@
+﻿{
+  RuleCode: V3073,
+  TestCase: BothFieldsDisposed,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} }
+class C : System.IDisposable {
+    private Res _a = new Res();
+    private Res _b = new Res();
+    public void Dispose() { _a.Dispose(); _b.Dispose(); }
+}
+}

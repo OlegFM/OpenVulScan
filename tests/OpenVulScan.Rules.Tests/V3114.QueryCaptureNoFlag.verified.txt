@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3114,
+  TestCase: QueryCaptureNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} }
+class Seq { public Seq Select(System.Func<int, Res> f) => this; }
+class C {
+    Seq M(Seq items) {
+        var r = new Res();
+        var q = from x in items select r;
+        return q;
+    }
+}
+}

@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3178,
+  TestCase: UseAfterDispose,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} public int P { get; set; } }
+class C {
+    void M() {
+        var r = new Res();
+        r.Dispose();
+        r.Use();
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3178,
+      Message: Object may already be disposed at this point,
+      Severity: Warning,
+      Location: {
+        StartLine: 6,
+        StartColumn: 9,
+        EndLine: 6,
+        EndColumn: 16
+      }
+    }
+  ]
+}

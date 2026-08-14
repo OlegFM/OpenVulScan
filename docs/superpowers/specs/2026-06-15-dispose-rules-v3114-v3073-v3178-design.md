@@ -111,7 +111,8 @@ Each rule = one file named after its code (`V3114NotDisposedBeforeReturn.cs`, et
 - **Escape pre-filter (KISS, anti-FP):** drop a symbol from tracking if it ever escapes — returned,
   assigned to a field/property, passed as an argument, captured by a lambda, or added to a
   collection. This removes the conditional-ownership false positives.
-- **Transfer:** creation ⇒ `Open`; `Dispose()`/`using`-exit ⇒ `Disposed`.
+- **Transfer:** creation ⇒ `Open`; explicit `Dispose()` ⇒ `Disposed`. (`using`-variables
+  are excluded from tracking entirely — see the §7 resolution; there is no `using`-exit arm.)
 - **Report:** at the Exit block in-state, any tracked resource `== Open` ⇒ V3114 (covers full
   leak and partial dispose).
 
@@ -149,8 +150,36 @@ but with two refinements the probe revealed:
 
 **Resolution (KISS, matches PVS V3114):** for the leak rules, **exclude `using`-variables from
 tracking entirely** (a `using` disposes by construction) and count only **explicit `Dispose()`
-calls written by the developer**. A manual `try/finally { s.Dispose(); }` yields a direct
-`ILocalReferenceOperation` instance (no null-guard) and is still correctly recognised as disposed.
+calls written by the developer**.
+
+**Correction (Task 4 TDD, 2026-06-17) — the original "dispose-in-finally yields Disposed on all
+paths" claim above is WRONG for the `WorklistSolver`.** The solver traverses only *normal*
+`block.Predecessors`; Roslyn connects a `finally` region by *exception* edges
+(`FallThroughSuccessor.Semantics == StructuredExceptionHandling`), so the `finally` block is not a
+normal predecessor of Exit and the solver never applies its `Dispose()`. Likewise `return r;` is
+lowered as `block.BranchValue` (an `ILocalReferenceOperation`, after `Unwrap`) with
+`FallThroughSuccessor.Semantics == Return`, with **no** `IReturnOperation` wrapper, so a
+parent-based escape check misses it. `DisposeFlow.CollectOwnedLocals` therefore adds two
+pre-filters: a branch-value-return escape, and a finally-dispose pre-filter that drops any resource
+disposed in a `StructuredExceptionHandling` block (finally always runs). **Known v1 FN:**
+`finally { if (c) r.Dispose(); }` is over-suppressed. A structural block-only CFG probe would not
+have surfaced this — it required running the solver. (Persisted to beads memory.)
+
+**Amendment (review fixes, 2026-08-14).** Five reviewed false-positive classes were closed after
+the initial implementation, with snapshot regressions for each:
+
+1. `OwnershipNullGuardEdgeRefiner` (new `IEdgeRefiner`) marks a tracked resource `Disposed` on any
+   edge where it is known to be `null` — a null reference has nothing to leak. This makes the
+   idiomatic guarded dispose (`if (x != null) x.Dispose();`, early-return guards) clean for V3114
+   and V3073, and **changes the original interpretation** that treated the null-guard as a partial
+   dispose (`FieldPartiallyDisposed` FLAG → `NullGuardedFieldDisposeNoFlag`). A dispose guarded by
+   an unrelated condition still reports (`FieldConditionallyDisposedFlag`).
+2. `DisposeStateTransfer` resets a variable to `Live` on declaration/reassignment, so V3178 no
+   longer inherits a previous iteration's `Disposed` state over a loop back edge.
+3. `CollectUsingLocals` also excludes the expression form `using (r)` over a pre-declared local.
+4. `Escapes` treats handing the reference to another variable (`var s = r;` / any assignment with
+   the reference on the value side) as an ownership-transfer escape.
+5. `CollectLambdaCaptured` also treats query expressions as capturing constructs.
 
 ## 8. Testing
 

@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3178,
+  TestCase: LoopScopedResourceNoFlag,
+  Source:
+sealed class Res : System.IDisposable { public void Dispose() {} public void Use() {} public int P { get; set; } }
+class C {
+    void M(int n) {
+        for (int i = 0; i < n; i++) {
+            var r = new Res();
+            r.Use();
+            r.Dispose();
+        }
+    }
+}
+}

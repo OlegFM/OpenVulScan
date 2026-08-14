@@ -1,0 +1,16 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: GuardedNonNegativeNotFlagged,
+  Source:
+class C
+{
+    string M(string s, int i)
+    {
+        if (i >= 0)
+        {
+            return s.Substring(i);
+        }
+        return s;
+    }
+}
+}

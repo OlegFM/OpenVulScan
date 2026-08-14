@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: UnknownArgumentNotFlagged,
+  Source:
+class C
+{
+    string M(string s, int i)
+    {
+        return s.Substring(i);
+    }
+}
+}

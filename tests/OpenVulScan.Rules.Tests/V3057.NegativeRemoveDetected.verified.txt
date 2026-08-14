@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: NegativeRemoveDetected,
+  Source:
+class C
+{
+    string M(string s)
+    {
+        int start = 2 - 4;
+        return s.Remove(start);
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3057,
+      Message: 'Remove' receives a definitely negative value [-2, -2],
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 25,
+        EndLine: 7,
+        EndColumn: 30
+      }
+    }
+  ]
+}

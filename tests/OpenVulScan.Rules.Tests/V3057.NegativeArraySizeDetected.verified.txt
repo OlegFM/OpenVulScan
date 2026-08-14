@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: NegativeArraySizeDetected,
+  Source:
+class C
+{
+    int[] M()
+    {
+        int n = -5;
+        return new int[n];
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3057,
+      Message: 'array size' receives a definitely negative value [-5, -5],
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 24,
+        EndLine: 7,
+        EndColumn: 25
+      }
+    }
+  ]
+}

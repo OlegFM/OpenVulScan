@@ -1,0 +1,25 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: NegativeSubstringStartDetected,
+  Source:
+class C
+{
+    string M(string s)
+    {
+        return s.Substring(-1);
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3057,
+      Message: 'Substring' receives a definitely negative value [-1, -1],
+      Severity: Warning,
+      Location: {
+        StartLine: 6,
+        StartColumn: 28,
+        EndLine: 6,
+        EndColumn: 30
+      }
+    }
+  ]
+}

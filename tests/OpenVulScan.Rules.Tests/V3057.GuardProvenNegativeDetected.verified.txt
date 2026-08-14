@@ -1,0 +1,29 @@
+﻿{
+  RuleCode: V3057,
+  TestCase: GuardProvenNegativeDetected,
+  Source:
+class C
+{
+    string M(string s, int i)
+    {
+        if (i < 0)
+        {
+            return s.Substring(i);
+        }
+        return s;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3057,
+      Message: 'Substring' receives a definitely negative value [-∞, -1],
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 32,
+        EndLine: 8,
+        EndColumn: 33
+      }
+    }
+  ]
+}

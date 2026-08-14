@@ -28,4 +28,28 @@ public sealed record MethodSummary(
     ImmutableArray<ParameterNullability> OutParameters,
     ImmutableArray<string> Throws,
     bool IsPure,
-    ImmutableArray<int> TaintPassThrough);
+    ImmutableArray<int> TaintPassThrough)
+{
+    // ImmutableArray<T> compares by backing-array identity, which would make fixed-point
+    // detection in bottom-up summary computation spin forever; compare element-wise instead.
+    public bool Equals(MethodSummary? other) =>
+        other is not null
+        && MethodId == other.MethodId
+        && ReturnNullability == other.ReturnNullability
+        && IsPure == other.IsPure
+        && OutParameters.AsSpan().SequenceEqual(other.OutParameters.AsSpan())
+        && Throws.AsSpan().SequenceEqual(other.Throws.AsSpan())
+        && TaintPassThrough.AsSpan().SequenceEqual(other.TaintPassThrough.AsSpan());
+
+    public override int GetHashCode()
+    {
+        var hash = default(HashCode);
+        hash.Add(MethodId, StringComparer.Ordinal);
+        hash.Add(ReturnNullability);
+        hash.Add(IsPure);
+        hash.Add(OutParameters.Length);
+        hash.Add(Throws.Length);
+        hash.Add(TaintPassThrough.Length);
+        return hash.ToHashCode();
+    }
+}

@@ -483,3 +483,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# beads transient state
+.beads.gate.lock
+.beads/.auto-import-issues.jsonl

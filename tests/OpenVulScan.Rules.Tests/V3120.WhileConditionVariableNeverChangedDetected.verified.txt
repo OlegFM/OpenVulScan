@@ -1,0 +1,31 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: WhileConditionVariableNeverChangedDetected,
+  Source:
+class C
+{
+    void M()
+    {
+        int i = 0;
+        int n = 0;
+        while (i < 10)
+        {
+            n = n + 1;
+        }
+        System.Console.WriteLine(n);
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3120,
+      Message: Potentially infinite loop. The variable from the loop exit condition does not change its value between iterations.,
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 16,
+        EndLine: 8,
+        EndColumn: 22
+      }
+    }
+  ]
+}

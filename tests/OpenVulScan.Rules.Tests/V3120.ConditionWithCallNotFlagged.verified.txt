@@ -1,0 +1,20 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: ConditionWithCallNotFlagged,
+  Source:
+class C
+{
+    bool Check(int v) => v < 10;
+
+    void M()
+    {
+        int i = 0;
+        int n = 0;
+        while (Check(i))
+        {
+            n = n + 1;
+        }
+        System.Console.WriteLine(n);
+    }
+}
+}

@@ -1,0 +1,17 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: ReturnInBodyNotFlagged,
+  Source:
+class C
+{
+    int M(bool stop)
+    {
+        int i = 0;
+        while (i < 10)
+        {
+            if (stop) { return 1; }
+        }
+        return 0;
+    }
+}
+}

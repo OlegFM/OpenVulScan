@@ -1,0 +1,19 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: RefEscapeNotFlagged,
+  Source:
+class C
+{
+    void F(ref int v) { v = 100; }
+
+    void M()
+    {
+        int i = 0;
+        while (i < 10)
+        {
+            F(ref i);
+        }
+        System.Console.WriteLine(i);
+    }
+}
+}

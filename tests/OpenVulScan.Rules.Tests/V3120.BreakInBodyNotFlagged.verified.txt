@@ -1,0 +1,17 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: BreakInBodyNotFlagged,
+  Source:
+class C
+{
+    void M(bool stop)
+    {
+        int i = 0;
+        while (i < 10)
+        {
+            if (stop) { break; }
+        }
+        System.Console.WriteLine(i);
+    }
+}
+}

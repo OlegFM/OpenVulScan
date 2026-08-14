@@ -1,0 +1,30 @@
+﻿{
+  RuleCode: V3120,
+  TestCase: ForWithoutIncrementorDetected,
+  Source:
+class C
+{
+    void M()
+    {
+        int n = 0;
+        for (int i = 0; i < 10;)
+        {
+            n = n + 1;
+        }
+        System.Console.WriteLine(n);
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3120,
+      Message: Potentially infinite loop. The variable from the loop exit condition does not change its value between iterations.,
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 25,
+        EndLine: 7,
+        EndColumn: 31
+      }
+    }
+  ]
+}

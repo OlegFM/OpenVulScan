@@ -1,0 +1,26 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: DefinitelyNullNullableCastDetected,
+  Source:
+class C
+{
+    int M()
+    {
+        int? x = null;
+        return (int)x;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3148,
+      Message: Casting potential 'null' value of 'x' to a value type can lead to NullReferenceException,
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 16,
+        EndLine: 7,
+        EndColumn: 22
+      }
+    }
+  ]
+}

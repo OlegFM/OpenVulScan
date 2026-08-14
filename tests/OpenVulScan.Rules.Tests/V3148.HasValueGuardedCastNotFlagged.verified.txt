@@ -1,0 +1,21 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: HasValueGuardedCastNotFlagged,
+  Source:
+class C
+{
+    int M(bool c)
+    {
+        int? x = null;
+        if (c)
+        {
+            x = 5;
+        }
+        if (x.HasValue)
+        {
+            return (int)x;
+        }
+        return 0;
+    }
+}
+}

@@ -1,0 +1,12 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: UnknownParameterCastNotFlagged,
+  Source:
+class C
+{
+    int M(int? x)
+    {
+        return (int)x;
+    }
+}
+}

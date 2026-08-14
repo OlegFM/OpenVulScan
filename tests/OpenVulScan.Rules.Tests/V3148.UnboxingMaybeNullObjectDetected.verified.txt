@@ -1,0 +1,30 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: UnboxingMaybeNullObjectDetected,
+  Source:
+class C
+{
+    int M(bool c)
+    {
+        object o = null;
+        if (c)
+        {
+            o = 42;
+        }
+        return (int)o;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3148,
+      Message: Casting potential 'null' value of 'o' to a value type can lead to NullReferenceException,
+      Severity: Warning,
+      Location: {
+        StartLine: 11,
+        StartColumn: 16,
+        EndLine: 11,
+        EndColumn: 22
+      }
+    }
+  ]
+}

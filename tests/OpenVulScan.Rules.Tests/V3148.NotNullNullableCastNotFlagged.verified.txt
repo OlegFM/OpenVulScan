@@ -1,0 +1,13 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: NotNullNullableCastNotFlagged,
+  Source:
+class C
+{
+    int M()
+    {
+        int? x = 5;
+        return (int)x;
+    }
+}
+}

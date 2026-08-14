@@ -1,0 +1,30 @@
+﻿{
+  RuleCode: V3148,
+  TestCase: MaybeNullNullableCastDetected,
+  Source:
+class C
+{
+    int M(bool c)
+    {
+        int? x = null;
+        if (c)
+        {
+            x = 5;
+        }
+        return (int)x;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3148,
+      Message: Casting potential 'null' value of 'x' to a value type can lead to NullReferenceException,
+      Severity: Warning,
+      Location: {
+        StartLine: 11,
+        StartColumn: 16,
+        EndLine: 11,
+        EndColumn: 22
+      }
+    }
+  ]
+}

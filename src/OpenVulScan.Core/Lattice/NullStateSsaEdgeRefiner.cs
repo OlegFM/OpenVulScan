@@ -86,6 +86,12 @@ public sealed class NullStateSsaEdgeRefiner : IEdgeRefiner<ImmutableDictionary<S
                 AddRefinement(isNull.Operand, isNull: whenTrue, refinements);
                 break;
 
+            // `x.HasValue` on Nullable<T> is a null check: true ⇒ not null, false ⇒ null.
+            case IPropertyReferenceOperation { Property.Name: "HasValue", Instance: { } instance }
+                when instance.Type?.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T:
+                AddRefinement(instance, isNull: !whenTrue, refinements);
+                break;
+
             case IUnaryOperation { OperatorKind: UnaryOperatorKind.Not } unary:
                 Collect(unary.Operand, !whenTrue, refinements);
                 break;

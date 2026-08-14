@@ -40,11 +40,31 @@ public class V3073Tests
         }
         """);
 
-    [Fact] // FLAG: field disposed on one branch only (null-guard wraps the dispose) ⇒ partial via join.
-    public Task FieldPartiallyDisposed() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "FieldPartiallyDisposed", Res + """
+    [Fact] // FLAG: field disposed only under an unrelated condition ⇒ genuine partial dispose.
+    public Task FieldConditionallyDisposedFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "FieldConditionallyDisposedFlag", Res + """
+        class C : System.IDisposable {
+            private Res _a = new Res();
+            private bool _flag;
+            public void Dispose() { if (_flag) { _a.Dispose(); } }
+        }
+        """);
+
+    [Fact] // NO FLAG: idiomatic null-guarded dispose — the null branch has nothing to leak.
+    public Task NullGuardedFieldDisposeNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "NullGuardedFieldDisposeNoFlag", Res + """
         class C : System.IDisposable {
             private Res _a = new Res();
             public void Dispose() { if (_a != null) { _a.Dispose(); } }
+        }
+        """);
+
+    [Fact] // NO FLAG: early-return null guard, then dispose.
+    public Task EarlyReturnGuardNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3073", "EarlyReturnGuardNoFlag", Res + """
+        class C : System.IDisposable {
+            private Res _a = new Res();
+            public void Dispose() {
+                if (_a == null) { return; }
+                _a.Dispose();
+            }
         }
         """);
 

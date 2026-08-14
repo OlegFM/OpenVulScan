@@ -1,11 +1,12 @@
 ﻿{
   RuleCode: V3073,
-  TestCase: FieldPartiallyDisposed,
+  TestCase: FieldConditionallyDisposedFlag,
   Source:
 sealed class Res : System.IDisposable { public void Dispose() {} }
 class C : System.IDisposable {
     private Res _a = new Res();
-    public void Dispose() { if (_a != null) { _a.Dispose(); } }
+    private bool _flag;
+    public void Dispose() { if (_flag) { _a.Dispose(); } }
 },
   Diagnostics: [
     {

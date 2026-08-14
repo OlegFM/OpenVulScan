@@ -82,4 +82,31 @@ public class V3178Tests
             }
         }
         """);
+
+    [Fact] // NO FLAG: fresh object every iteration — the back edge must not leak the previous
+           // iteration's Disposed state into the new object's lifetime.
+    public Task LoopScopedResourceNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3178", "LoopScopedResourceNoFlag", Res + """
+        class C {
+            void M(int n) {
+                for (int i = 0; i < n; i++) {
+                    var r = new Res();
+                    r.Use();
+                    r.Dispose();
+                }
+            }
+        }
+        """);
+
+    [Fact] // NO FLAG: reassignment binds the variable to a fresh object.
+    public Task RecreateAfterDisposeNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3178", "RecreateAfterDisposeNoFlag", Res + """
+        class C {
+            void M() {
+                var r = new Res();
+                r.Dispose();
+                r = new Res();
+                r.Use();
+                r.Dispose();
+            }
+        }
+        """);
 }

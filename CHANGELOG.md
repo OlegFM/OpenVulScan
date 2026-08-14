@@ -20,6 +20,17 @@ All notable changes to this project are documented in this file. The format is b
   the leak-dangerous `Open` state as top (⊤), so a partial dispose survives control-flow joins and
   can be reported.
 
+### Fixed
+
+- **Dispose family review fixes** — five false-positive classes closed: the idiomatic null-guarded
+  dispose (`if (x != null) x.Dispose();`, early-return guards) is now clean for V3114/V3073 via the
+  new `OwnershipNullGuardEdgeRefiner` (a dispose guarded by an unrelated condition still reports);
+  V3178 no longer flags a fresh object created in a loop or after reassignment
+  (`DisposeStateTransfer` resets to `Live` on declaration/reassignment); the `using (r)` expression
+  form over a pre-declared local is excluded from leak tracking; handing a resource to another
+  variable (`var s = r;`) counts as an ownership-transfer escape; query expressions count as
+  capturing constructs.
+
 ### Notes
 
 - The leak rules count only explicit developer `Dispose()` calls; `using` is treated as disposed by

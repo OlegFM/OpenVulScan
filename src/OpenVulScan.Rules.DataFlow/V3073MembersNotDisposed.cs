@@ -74,7 +74,8 @@ public sealed class V3073MembersNotDisposed : AstRule
 
         var transfer = new ResourceOwnershipTransfer(fieldKeys, context.Compilation);
         var solver = new WorklistSolver<ImmutableDictionary<TrackedKey, OwnershipState>>(
-            new MapLattice<TrackedKey, ResourceOwnershipLattice, OwnershipState>(), transfer);
+            new MapLattice<TrackedKey, ResourceOwnershipLattice, OwnershipState>(), transfer,
+            new OwnershipNullGuardEdgeRefiner(fieldKeys));
 
         var result = solver.Solve(cfg, seed, ct);
 

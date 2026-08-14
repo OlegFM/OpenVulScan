@@ -47,7 +47,8 @@ public sealed class V3114NotDisposedBeforeReturn : AstRule
         var tracked = owned.Keys.ToHashSet();
         var transfer = new ResourceOwnershipTransfer(tracked, context.Compilation);
         var solver = new WorklistSolver<ImmutableDictionary<TrackedKey, OwnershipState>>(
-            new MapLattice<TrackedKey, ResourceOwnershipLattice, OwnershipState>(), transfer);
+            new MapLattice<TrackedKey, ResourceOwnershipLattice, OwnershipState>(), transfer,
+            new OwnershipNullGuardEdgeRefiner(tracked));
 
         var result = solver.Solve(cfg, ct);
 

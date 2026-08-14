@@ -241,7 +241,13 @@ internal static class DisposeFlow
     private static bool IsObjectCreation(IOperation value)
         => Unwrap(value) is IObjectCreationOperation;
 
-    private static TrackedKey? ResolveResourceKey(IOperation instance)
+    /// <summary>
+    /// Resolves an operation to the <see cref="TrackedKey"/> of the local, parameter, or
+    /// instance field it references (unwrapping conversions and parentheses), or
+    /// <see langword="null"/>. Shared with <see cref="OwnershipNullGuardEdgeRefiner"/> and
+    /// <see cref="DisposeStateTransfer"/>.
+    /// </summary>
+    internal static TrackedKey? ResolveResourceKey(IOperation instance)
     {
         return Unwrap(instance) switch
         {
@@ -294,7 +300,12 @@ internal static class DisposeFlow
         {
             IReturnOperation => true,
             IArgumentOperation => true,
-            ISimpleAssignmentOperation { Target: IFieldReferenceOperation or IPropertyReferenceOperation } => true,
+            // `var s = r;` — initializing another variable hands the reference on: ownership
+            // transfer is conservatively treated as an escape (the alias may dispose it).
+            IVariableInitializerOperation => true,
+            // Any assignment where the reference is on the VALUE side (alias, field, property,
+            // array element, ...) transfers the reference out of the tracked local.
+            ISimpleAssignmentOperation assignment when !ReferenceEquals(assignment.Target, reference) => true,
             _ => false,
         };
     }
@@ -303,9 +314,18 @@ internal static class DisposeFlow
     {
         var result = new HashSet<ILocalSymbol>(SymbolEqualityComparer.Default);
 
-        // `using (var s = ...) { }`
+        // `using (var s = ...) { }` and the expression form `using (s) { }` over an existing
+        // local — both dispose by construction.
         foreach (var u in method.DescendantNodes().OfType<UsingStatementSyntax>())
+        {
             AddDeclared(u.Declaration, model, result);
+
+            if (u.Expression is { } expr
+                && model.GetSymbolInfo(UnwrapExpression(expr)).Symbol is ILocalSymbol usedLocal)
+            {
+                result.Add(usedLocal);
+            }
+        }
 
         // `using var s = ...;`
         foreach (var d in method.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
@@ -320,8 +340,10 @@ internal static class DisposeFlow
     private static HashSet<ILocalSymbol> CollectLambdaCaptured(MethodDeclarationSyntax method, SemanticModel model)
     {
         var result = new HashSet<ILocalSymbol>(SymbolEqualityComparer.Default);
+        // Query expressions capture like lambdas do (they lower to lambda arguments), so a
+        // resource referenced from a query clause escapes the method's own control flow too.
         var lambdaBodies = method.DescendantNodes()
-            .Where(n => n is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax);
+            .Where(n => n is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax or QueryExpressionSyntax);
 
         foreach (var body in lambdaBodies)
         {
@@ -353,5 +375,12 @@ internal static class DisposeFlow
         IConversionOperation c => Unwrap(c.Operand),
         IParenthesizedOperation p => Unwrap(p.Operand),
         _ => op,
+    };
+
+    private static ExpressionSyntax UnwrapExpression(ExpressionSyntax expr) => expr switch
+    {
+        ParenthesizedExpressionSyntax p => UnwrapExpression(p.Expression),
+        CastExpressionSyntax c => UnwrapExpression(c.Expression),
+        _ => expr,
     };
 }

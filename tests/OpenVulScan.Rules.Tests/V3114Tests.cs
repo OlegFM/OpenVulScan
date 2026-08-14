@@ -98,4 +98,47 @@ public class V3114Tests
             }
         }
         """);
+
+    [Fact] // NO FLAG: manual null-guarded dispose — the null branch has nothing to leak.
+    public Task NullGuardedLocalDisposeNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "NullGuardedLocalDisposeNoFlag", Res + """
+        class C {
+            void M() {
+                var r = new Res();
+                if (r != null) { r.Dispose(); }
+            }
+        }
+        """);
+
+    [Fact] // NO FLAG: `using (r)` over a pre-declared local disposes by construction.
+    public Task UsingExpressionFormNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "UsingExpressionFormNoFlag", Res + """
+        class C {
+            void M() {
+                var r = new Res();
+                using (r) { r.Use(); }
+            }
+        }
+        """);
+
+    [Fact] // NO FLAG: ownership transferred to an alias that disposes it.
+    public Task AliasDisposeNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "AliasDisposeNoFlag", Res + """
+        class C {
+            void M() {
+                var r = new Res();
+                var s = r;
+                s.Dispose();
+            }
+        }
+        """);
+
+    [Fact] // NO FLAG: resource captured by a query expression escapes into the returned query.
+    public Task QueryCaptureNoFlag() => SnapshotTestHarness.RunRuleSnapshotAsync("V3114", "QueryCaptureNoFlag", Res + """
+        class Seq { public Seq Select(System.Func<int, Res> f) => this; }
+        class C {
+            Seq M(Seq items) {
+                var r = new Res();
+                var q = from x in items select r;
+                return q;
+            }
+        }
+        """);
 }

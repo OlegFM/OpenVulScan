@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3008,
+  TestCase: BranchBetweenAssignmentsNotFlagged,
+  Source:
+class C
+{
+    void M(bool c)
+    {
+        int x = 1;
+        if (c) { System.Console.WriteLine(1); }
+        x = 2;
+        System.Console.WriteLine(x);
+    }
+}
+}

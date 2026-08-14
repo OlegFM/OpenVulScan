@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3008,
+  TestCase: CompoundAssignmentNotFlagged,
+  Source:
+class C
+{
+    void M()
+    {
+        int x = 1;
+        x += 2;
+        System.Console.WriteLine(x);
+    }
+}
+}

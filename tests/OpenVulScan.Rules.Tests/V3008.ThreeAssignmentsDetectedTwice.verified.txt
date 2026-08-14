@@ -1,0 +1,39 @@
+﻿{
+  RuleCode: V3008,
+  TestCase: ThreeAssignmentsDetectedTwice,
+  Source:
+class C
+{
+    void M()
+    {
+        int x = 1;
+        x = 2;
+        x = 3;
+        System.Console.WriteLine(x);
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3008,
+      Message: The 'x' variable is assigned values twice successively. Perhaps this is a mistake.,
+      Severity: Warning,
+      Location: {
+        StartLine: 7,
+        StartColumn: 9,
+        EndLine: 7,
+        EndColumn: 14
+      }
+    },
+    {
+      Id: V3008,
+      Message: The 'x' variable is assigned values twice successively. Perhaps this is a mistake.,
+      Severity: Warning,
+      Location: {
+        StartLine: 8,
+        StartColumn: 9,
+        EndLine: 8,
+        EndColumn: 14
+      }
+    }
+  ]
+}

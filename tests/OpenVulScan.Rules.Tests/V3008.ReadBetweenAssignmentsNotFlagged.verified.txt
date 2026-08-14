@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3008,
+  TestCase: ReadBetweenAssignmentsNotFlagged,
+  Source:
+class C
+{
+    void M()
+    {
+        int x = 1;
+        int y = x;
+        x = 2;
+        System.Console.WriteLine(y + x);
+    }
+}
+}

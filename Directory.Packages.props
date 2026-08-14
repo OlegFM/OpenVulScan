@@ -25,6 +25,9 @@
     <!-- MSBuild Locator -->
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.9.1" />
 
+    <!-- Serialization (summary cache) -->
+    <PackageVersion Include="MessagePack" Version="3.1.8" />
+
     <!-- Snapshot Testing -->
     <PackageVersion Include="Verify.Xunit" Version="28.10.0" />
     <PackageVersion Include="Verify" Version="28.10.0" />

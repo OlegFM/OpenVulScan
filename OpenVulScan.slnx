@@ -14,6 +14,7 @@
     <Project Path="src/OpenVulScan.Sarif/OpenVulScan.Sarif.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/OpenVulScan.Cache.Tests/OpenVulScan.Cache.Tests.csproj" />
     <Project Path="tests/OpenVulScan.Core.Tests/OpenVulScan.Core.Tests.csproj" />
     <Project Path="tests/OpenVulScan.CorpusBench/OpenVulScan.CorpusBench.csproj" />
     <Project Path="tests/OpenVulScan.Integration.Tests/OpenVulScan.Integration.Tests.csproj" />

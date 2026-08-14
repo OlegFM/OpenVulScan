@@ -22,7 +22,7 @@ counting loop. Hence a **widening** operator `∇` is mandatory (Cousot & Cousot
 back-edge, any bound that moved outward is jumped straight to ±∞, guaranteeing each bound
 changes at most once (finite → ∞). This trades precision for termination.
 
-`Widen` lives on a new marker interface `IWideningLattice<T> : ILattice<T>` so a future
+`Widen` lives on a new interface `IWideningLattice<T> : ILattice<T>` so a future
 solver can detect "this domain needs widening at loop heads" without special-casing types.
 
 ## 3. Representation (KISS)
@@ -36,7 +36,12 @@ solver can detect "this domain needs widening at loop heads" without special-cas
 
 **Decision — sentinel infinities (saturation):** the two `long` extremes double as ±∞.
 A real value reaching `long.MaxValue`/`long.MinValue` is treated as unbounded — a *sound*
-over-approximation. Consequence: the exact extreme longs lose precision (treated as ∞).
+over-approximation. **Amended (review fix, 2026-08-14):** because the domain is bounded by the
+`long` range, γ(lower = `long.MinValue`) equals γ(−∞) — so endpoint arithmetic treats every
+bound as its exact value (computed in `Int128`, then clamped) with **no** ∞ special cases.
+The original ∞-dominant helpers under-approximated when a sentinel value sat on the inner
+side of a bound (e.g. `Constant(long.MinValue) + 10` returned `[−∞, MinValue]`, excluding the
+true value). Overflow saturates to the extremes; two's-complement wrap is not modeled.
 Acceptable for a SAST range domain; avoids carrying separate infinity flags. `long` is the
 internal width, so `int` ranges embed exactly.
 
@@ -73,7 +78,9 @@ non-negative, otherwise ⊤:
 - `BitwiseOr`: both ≥ 0 ⇒ `[max(a,c), b+d]`; else ⊤ (`max(x,y) ≤ x|y ≤ x+y`).
 - `BitwiseXor`: both ≥ 0 ⇒ `[0, b+d]`; else ⊤ (`x ^ y ≤ x|y ≤ x+y`).
 - `ShiftLeft(k)` / `ShiftRight(k)` by a constant `k ≥ 0` ⇒ multiply / divide by `2^k`
-  (arithmetic shift on the interval), reusing `Multiply`/`Divide`.
+  (arithmetic shift on the interval). Implemented by shifting the endpoints directly — NOT
+  via `Multiply`/`Divide`: `x >> k` is floor division while `Divide` truncates toward zero
+  (`-7 >> 1 == -4` but `-7 / 2 == -3`), so reusing `Divide` would be unsound for negatives.
 
 ## 7. Testing
 

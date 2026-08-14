@@ -275,4 +275,25 @@ public class IntervalLatticeTests
         Assert.Equal(IntervalValue.Range(0, IntervalValue.PositiveInfinity), accumulated);
         Assert.True(iterations <= 4);
     }
+
+    [Fact]
+    public void Widen_IsUpperBoundOfBothArguments()
+    {
+        // Termination of the widened iteration needs result ⊒ previous (ascending chain);
+        // soundness needs result ⊒ incoming. Check both over the full sample square.
+        foreach (var previous in _sample)
+        {
+            foreach (var incoming in _sample)
+            {
+                var widened = _lattice.Widen(previous, incoming);
+
+                Assert.True(_lattice.LessOrEqual(previous, widened),
+                    $"Widen({previous}, {incoming}) = {widened} is not ⊒ previous");
+                Assert.True(_lattice.LessOrEqual(incoming, widened),
+                    $"Widen({previous}, {incoming}) = {widened} is not ⊒ incoming");
+                Assert.True(_lattice.LessOrEqual(_lattice.Join(previous, incoming), widened),
+                    $"Widen({previous}, {incoming}) = {widened} is not ⊒ Join");
+            }
+        }
+    }
 }

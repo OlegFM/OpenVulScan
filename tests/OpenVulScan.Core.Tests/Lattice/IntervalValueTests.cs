@@ -267,4 +267,82 @@ public class IntervalValueTests
         Assert.Equal("[-∞, 0]", IntervalValue.Range(long.MinValue, 0).ToString());
         Assert.Equal("[0, +∞]", IntervalValue.Range(0, long.MaxValue).ToString());
     }
+
+    // ── Soundness at the long extremes (review counterexamples) ─────────────────────────
+    // A sentinel bound and the exact extreme denote the same concrete set (the domain is
+    // bounded by the long range), so arithmetic must treat every bound as its exact value.
+    // The original ∞-dominant helpers excluded reachable values in each case below.
+
+    [Fact]
+    public void Add_MinValuePlusTen_ContainsTrueValue()
+    {
+        var result = IntervalValue.Constant(long.MinValue).Add(IntervalValue.Constant(10));
+
+        Assert.Equal(IntervalValue.Constant(long.MinValue + 10), result);
+        Assert.True(result.Contains(long.MinValue + 10));
+    }
+
+    [Fact]
+    public void Add_MaxValueMinusTen_ContainsTrueValue()
+    {
+        var result = IntervalValue.Constant(long.MaxValue).Add(IntervalValue.Constant(-10));
+
+        Assert.Equal(IntervalValue.Constant(long.MaxValue - 10), result);
+        Assert.True(result.Contains(long.MaxValue - 10));
+    }
+
+    [Fact]
+    public void Multiply_MaxValueByMinusOne_ContainsTrueValue()
+    {
+        var result = IntervalValue.Constant(long.MaxValue).Multiply(IntervalValue.Constant(-1));
+
+        Assert.Equal(IntervalValue.Constant(long.MinValue + 1), result);
+        Assert.True(result.Contains(long.MinValue + 1));
+    }
+
+    [Fact]
+    public void Divide_MaxValueByMinusOne_ContainsTrueValue()
+    {
+        var result = IntervalValue.Constant(long.MaxValue).Divide(IntervalValue.Constant(-1));
+
+        Assert.Equal(IntervalValue.Constant(long.MinValue + 1), result);
+        Assert.True(result.Contains(long.MinValue + 1));
+    }
+
+    [Fact]
+    public void Divide_MinValueByMinValue_IsOne()
+    {
+        var result = IntervalValue.Constant(long.MinValue).Divide(IntervalValue.Constant(long.MinValue));
+
+        Assert.Equal(IntervalValue.Constant(1), result);
+    }
+
+    [Fact]
+    public void Divide_MinValueByMinusOne_SaturatesToPositiveInfinity()
+    {
+        // The only quotient that genuinely leaves the long range: 2^63 clamps to +∞.
+        var result = IntervalValue.Constant(long.MinValue).Divide(IntervalValue.Constant(-1));
+
+        Assert.True(result.UpperIsInfinite);
+    }
+
+    [Fact]
+    public void Add_GenuineOverflow_SaturatesUpward()
+    {
+        // [MaxValue-1, MaxValue] + [2, 2]: both endpoints exceed the range and clamp to +∞;
+        // saturating semantics (wrap-around is deliberately not modeled).
+        var result = IntervalValue.Range(long.MaxValue - 1, long.MaxValue)
+            .Add(IntervalValue.Constant(2));
+
+        Assert.True(result.UpperIsInfinite);
+        Assert.True(result.Contains(long.MaxValue));
+    }
+
+    [Fact]
+    public void Default_IsEmpty()
+    {
+        Assert.True(default(IntervalValue).IsEmpty);
+        Assert.Equal(IntervalValue.Empty, default(IntervalValue));
+        Assert.False(default(IntervalValue).Contains(0));
+    }
 }

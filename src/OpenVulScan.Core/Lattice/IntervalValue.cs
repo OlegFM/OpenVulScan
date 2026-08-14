@@ -10,12 +10,18 @@ namespace OpenVulScan;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Bounds are stored as <see cref="long"/>; <c>int</c> ranges embed exactly. Arithmetic is
-/// <em>saturating</em>: results that leave the <see cref="long"/> range are clamped to ±∞,
-/// a sound over-approximation. A real value reaching <see cref="long.MinValue"/>/
-/// <see cref="long.MaxValue"/> is therefore treated as unbounded — the exact extremes lose
-/// precision, which is acceptable for a range domain and avoids carrying separate infinity
-/// flags.
+/// Bounds are stored as <see cref="long"/>; <c>int</c> ranges embed exactly. Because the
+/// domain is inherently bounded by the <see cref="long"/> range, the ∞ sentinels need no
+/// special arithmetic: γ(lower = <see cref="long.MinValue"/>) already means "everything down
+/// to <see cref="long.MinValue"/>", which is the same set whether the bound arose as a
+/// sentinel or as the exact extreme. Endpoint arithmetic therefore computes the exact value
+/// in <see cref="Int128"/> and clamps back into the <see cref="long"/> range — a sound
+/// over-approximation under <em>saturating</em> semantics. Two's-complement wrap-around is
+/// deliberately not modeled: a potential runtime overflow saturates to the corresponding
+/// extreme instead of wrapping.
+/// </para>
+/// <para>
+/// <c>default(IntervalValue)</c> is <see cref="Empty"/> (⊥).
 /// </para>
 /// <para>
 /// This is the value carried by <see cref="IntervalLattice"/>. Order-theoretic operations
@@ -31,38 +37,40 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// <summary>The +∞ sentinel for an upper bound.</summary>
     public const long PositiveInfinity = long.MaxValue;
 
-    private readonly bool _isEmpty;
+    // Inverted flag so that default(IntervalValue) is Empty (⊥), not Constant(0) — a
+    // defaulted struct silently meaning "exactly zero" is a trap for map lookups.
+    private readonly bool _hasValue;
     private readonly long _lower;
     private readonly long _upper;
 
-    private IntervalValue(bool isEmpty, long lower, long upper)
+    private IntervalValue(bool hasValue, long lower, long upper)
     {
-        _isEmpty = isEmpty;
+        _hasValue = hasValue;
         _lower = lower;
         _upper = upper;
     }
 
     /// <summary>The empty interval ∅ (⊥) — no values / not reachable on this path.</summary>
-    public static IntervalValue Empty { get; } = new(isEmpty: true, 0, 0);
+    public static IntervalValue Empty { get; } = new(hasValue: false, 0, 0);
 
     /// <summary>The greatest element ⊤ = <c>[−∞, +∞]</c> — any value.</summary>
-    public static IntervalValue Top { get; } = new(isEmpty: false, NegativeInfinity, PositiveInfinity);
+    public static IntervalValue Top { get; } = new(hasValue: true, NegativeInfinity, PositiveInfinity);
 
     /// <summary>
     /// The closed range <c>[lower, upper]</c>, normalised to <see cref="Empty"/> when
     /// <paramref name="lower"/> &gt; <paramref name="upper"/>.
     /// </summary>
     public static IntervalValue Range(long lower, long upper)
-        => lower > upper ? Empty : new IntervalValue(isEmpty: false, lower, upper);
+        => lower > upper ? Empty : new IntervalValue(hasValue: true, lower, upper);
 
     /// <summary>The singleton interval <c>[value, value]</c>.</summary>
-    public static IntervalValue Constant(long value) => new(isEmpty: false, value, value);
+    public static IntervalValue Constant(long value) => new(hasValue: true, value, value);
 
     /// <summary>Gets a value indicating whether this is the empty interval ∅.</summary>
-    public bool IsEmpty => _isEmpty;
+    public bool IsEmpty => !_hasValue;
 
     /// <summary>Gets a value indicating whether this is ⊤ = <c>[−∞, +∞]</c>.</summary>
-    public bool IsTop => !_isEmpty && _lower == NegativeInfinity && _upper == PositiveInfinity;
+    public bool IsTop => _hasValue && _lower == NegativeInfinity && _upper == PositiveInfinity;
 
     /// <summary>Gets the lower bound (valid only when <see cref="IsEmpty"/> is false).</summary>
     public long Lower => _lower;
@@ -71,29 +79,29 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     public long Upper => _upper;
 
     /// <summary>Gets a value indicating whether the lower bound is −∞.</summary>
-    public bool LowerIsInfinite => !_isEmpty && _lower == NegativeInfinity;
+    public bool LowerIsInfinite => _hasValue && _lower == NegativeInfinity;
 
     /// <summary>Gets a value indicating whether the upper bound is +∞.</summary>
-    public bool UpperIsInfinite => !_isEmpty && _upper == PositiveInfinity;
+    public bool UpperIsInfinite => _hasValue && _upper == PositiveInfinity;
 
     /// <summary>Determines whether <paramref name="value"/> lies within this interval.</summary>
-    public bool Contains(long value) => !_isEmpty && _lower <= value && value <= _upper;
+    public bool Contains(long value) => _hasValue && _lower <= value && value <= _upper;
 
     // ── Abstract arithmetic (saturating, sound over-approximations) ─────────────────────
 
     /// <summary>Interval addition: <c>[a,b] + [c,d] = [a+c, b+d]</c>.</summary>
     public IntervalValue Add(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
-        return Range(AddLower(_lower, other._lower), AddUpper(_upper, other._upper));
+        return Range(SatAdd(_lower, other._lower), SatAdd(_upper, other._upper));
     }
 
     /// <summary>Interval negation: <c>-[a,b] = [-b, -a]</c>.</summary>
     public IntervalValue Negate()
     {
-        if (_isEmpty)
+        if (IsEmpty)
             return Empty;
 
         return Range(NegateBound(_upper), NegateBound(_lower));
@@ -103,12 +111,12 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     public IntervalValue Subtract(IntervalValue other) => Add(other.Negate());
 
     /// <summary>
-    /// Interval multiplication: the convex hull of the four corner products
-    /// (sign-aware, with <c>∞ × 0 = 0</c>).
+    /// Interval multiplication: the convex hull of the four corner products,
+    /// each computed exactly in <see cref="Int128"/> and clamped.
     /// </summary>
     public IntervalValue Multiply(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         long ac = SatMul(_lower, other._lower);
@@ -127,7 +135,7 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// </summary>
     public IntervalValue Divide(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         // Divisor straddles 0 ⇒ unknown / possible division by zero.
@@ -150,7 +158,7 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// </summary>
     public IntervalValue Intersect(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         return Range(Math.Max(_lower, other._lower), Math.Min(_upper, other._upper));
@@ -164,7 +172,7 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// </summary>
     public IntervalValue BitwiseAnd(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         bool leftNonNeg = _lower >= 0;
@@ -186,11 +194,11 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// </summary>
     public IntervalValue BitwiseOr(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         if (_lower >= 0 && other._lower >= 0)
-            return Range(Math.Max(_lower, other._lower), AddUpper(_upper, other._upper));
+            return Range(Math.Max(_lower, other._lower), SatAdd(_upper, other._upper));
 
         return Top;
     }
@@ -201,11 +209,11 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// </summary>
     public IntervalValue BitwiseXor(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
+        if (IsEmpty || other.IsEmpty)
             return Empty;
 
         if (_lower >= 0 && other._lower >= 0)
-            return Range(0, AddUpper(_upper, other._upper));
+            return Range(0, SatAdd(_upper, other._upper));
 
         return Top;
     }
@@ -218,7 +226,7 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 63);
-        if (_isEmpty)
+        if (IsEmpty)
             return Empty;
 
         // << is monotone in the operand, so shifting both endpoints preserves the order.
@@ -233,7 +241,7 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 63);
-        if (_isEmpty)
+        if (IsEmpty)
             return Empty;
 
         long lo = IsNegInf(_lower) ? NegativeInfinity : _lower >> count;
@@ -247,17 +255,6 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
 
     private static bool IsPosInf(long x) => x == PositiveInfinity;
 
-    private static bool IsInfinite(long x) => x == NegativeInfinity || x == PositiveInfinity;
-
-    private static int SignOf(long x)
-    {
-        if (IsNegInf(x))
-            return -1;
-        if (IsPosInf(x))
-            return 1;
-        return Math.Sign(x);
-    }
-
     private static long Clamp(Int128 value)
     {
         if (value <= NegativeInfinity)
@@ -267,25 +264,12 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
         return (long)value;
     }
 
-    private static long AddLower(long x, long y)
-    {
-        // Forming a lower bound: −∞ dominates the (degenerate) −∞ + +∞ case.
-        if (IsNegInf(x) || IsNegInf(y))
-            return NegativeInfinity;
-        if (IsPosInf(x) || IsPosInf(y))
-            return PositiveInfinity;
-        return Clamp((Int128)x + y);
-    }
-
-    private static long AddUpper(long x, long y)
-    {
-        // Forming an upper bound: +∞ dominates the (degenerate) −∞ + +∞ case.
-        if (IsPosInf(x) || IsPosInf(y))
-            return PositiveInfinity;
-        if (IsNegInf(x) || IsNegInf(y))
-            return NegativeInfinity;
-        return Clamp((Int128)x + y);
-    }
+    // The domain is bounded by the long range, so a sentinel bound and the exact extreme
+    // denote the same concrete set; endpoint arithmetic is exact in Int128, then clamped.
+    // Infinity special cases would UNDER-approximate when a sentinel value sits on the
+    // inner side of a bound (e.g. Constant(long.MinValue) + 10 must be MinValue + 10,
+    // not [-∞, MinValue]).
+    private static long SatAdd(long x, long y) => Clamp((Int128)x + y);
 
     private static long NegateBound(long x)
     {
@@ -296,28 +280,11 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
         return -x;
     }
 
-    private static long SatMul(long x, long y)
-    {
-        if (x == 0 || y == 0)
-            return 0; // 0 absorbs, including ∞ × 0 = 0
-        if (IsInfinite(x) || IsInfinite(y))
-            return SignOf(x) * SignOf(y) > 0 ? PositiveInfinity : NegativeInfinity;
-        return Clamp((Int128)x * y);
-    }
+    private static long SatMul(long x, long y) => Clamp((Int128)x * y);
 
-    private static long SatDiv(long x, long y)
-    {
-        // Caller guarantees the divisor interval excludes 0, so y != 0 here.
-        if (x == 0)
-            return 0;
-        if (IsInfinite(x) && IsInfinite(y))
-            return SignOf(x) * SignOf(y) > 0 ? PositiveInfinity : NegativeInfinity;
-        if (IsInfinite(x))
-            return SignOf(x) * SignOf(y) > 0 ? PositiveInfinity : NegativeInfinity;
-        if (IsInfinite(y))
-            return 0; // finite / ∞ truncates to 0
-        return Clamp((Int128)x / y);
-    }
+    // Caller guarantees the divisor interval excludes 0, so y != 0 here. Int128 division
+    // truncates toward zero, matching C# long division; MinValue / -1 clamps to +∞.
+    private static long SatDiv(long x, long y) => Clamp((Int128)x / y);
 
     private static long ShlBound(long x, int count)
     {
@@ -337,8 +304,8 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     /// <inheritdoc />
     public bool Equals(IntervalValue other)
     {
-        if (_isEmpty || other._isEmpty)
-            return _isEmpty == other._isEmpty;
+        if (IsEmpty || other.IsEmpty)
+            return IsEmpty == other.IsEmpty;
 
         return _lower == other._lower && _upper == other._upper;
     }
@@ -347,12 +314,12 @@ public readonly struct IntervalValue : IEquatable<IntervalValue>
     public override bool Equals(object? obj) => obj is IntervalValue other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => _isEmpty ? 0 : HashCode.Combine(_lower, _upper);
+    public override int GetHashCode() => IsEmpty ? 0 : HashCode.Combine(_lower, _upper);
 
     /// <inheritdoc />
     public override string ToString()
     {
-        if (_isEmpty)
+        if (IsEmpty)
             return "∅";
 
         string lo = IsNegInf(_lower) ? "-∞" : _lower.ToString(CultureInfo.InvariantCulture);

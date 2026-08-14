@@ -24,9 +24,11 @@ namespace OpenVulScan;
 public interface IWideningLattice<T> : ILattice<T>
 {
     /// <summary>
-    /// Widens <paramref name="previous"/> towards <paramref name="incoming"/>, returning an
-    /// element ⊒ <paramref name="incoming"/> chosen so that repeated application stabilises in
-    /// a finite number of steps.
+    /// Widens <paramref name="previous"/> towards <paramref name="incoming"/>. The result must
+    /// be an upper bound of <em>both</em> arguments (⊒ <paramref name="previous"/> and
+    /// ⊒ <paramref name="incoming"/> — the former is what makes the iterate sequence an
+    /// ascending chain), chosen so that repeated application stabilises in a finite number of
+    /// steps.
     /// </summary>
     /// <param name="previous">The previous iterate (the accumulated value).</param>
     /// <param name="incoming">The newly produced value (expected ⊒ <paramref name="previous"/>).</param>

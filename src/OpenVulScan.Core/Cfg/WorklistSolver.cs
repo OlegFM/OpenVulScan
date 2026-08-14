@@ -60,6 +60,16 @@ public sealed class WorklistSolver<T>
             worklist.Enqueue(block);
         }
 
+        // Widening points: blocks with a back-edge predecessor (RPO index of the predecessor
+        // >= the block's own), i.e. loop headers. Only relevant when the lattice opts into
+        // widening — finite-height lattices converge under Join alone.
+        var wideningLattice = _lattice as IWideningLattice<T>;
+        var rpoIndex = new Dictionary<BasicBlock, int>(rpo.Length);
+        for (int i = 0; i < rpo.Length; i++)
+        {
+            rpoIndex[rpo[i]] = i;
+        }
+
         int iterations = 0;
         while (worklist.Count > 0 && iterations < _maxIterations)
         {
@@ -68,6 +78,11 @@ public sealed class WorklistSolver<T>
             iterations++;
 
             var newIn = ComputeInState(block, outStates, entryBlock, initialEntryState);
+            if (wideningLattice is not null && HasBackEdgePredecessor(block, rpoIndex))
+            {
+                newIn = wideningLattice.Widen(inStates[block], newIn);
+            }
+
             if (AreEqual(newIn, inStates[block]))
             {
                 continue;
@@ -96,6 +111,22 @@ public sealed class WorklistSolver<T>
             ImmutableDictionary.CreateRange(inStates),
             ImmutableDictionary.CreateRange(outStates),
             converged: worklist.Count == 0);
+    }
+
+    private static bool HasBackEdgePredecessor(BasicBlock block, Dictionary<BasicBlock, int> rpoIndex)
+    {
+        foreach (var pred in block.Predecessors)
+        {
+            if (pred.Source is { } source
+                && rpoIndex.TryGetValue(source, out int sourceIndex)
+                && rpoIndex.TryGetValue(block, out int blockIndex)
+                && sourceIndex >= blockIndex)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Dictionary<BasicBlock, List<BasicBlock>> BuildSuccessorMap(ControlFlowGraph cfg)

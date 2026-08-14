@@ -7,12 +7,19 @@ namespace OpenVulScan;
 
 /// <summary>
 /// A product (map) lattice: each key maps to an element of a sub-lattice.
-/// Join and partial order are applied point-wise.
+/// Join, partial order, and widening are applied point-wise.
 /// </summary>
 /// <typeparam name="TKey">The type of the map keys.</typeparam>
 /// <typeparam name="TLattice">The type of the sub-lattice implementation.</typeparam>
 /// <typeparam name="TValue">The element type of the sub-lattice.</typeparam>
-public sealed class MapLattice<TKey, TLattice, TValue> : ILattice<ImmutableDictionary<TKey, TValue>>
+/// <remarks>
+/// The map lattice always implements <see cref="IWideningLattice{T}"/>: when the sub-lattice
+/// itself widens, <see cref="Widen"/> delegates point-wise; otherwise it degrades to the
+/// point-wise <see cref="Join"/>, which is a valid widening for finite-height sub-lattices.
+/// The key set is bounded by the variables of the analysed method, so only the per-key value
+/// chains can be infinite.
+/// </remarks>
+public sealed class MapLattice<TKey, TLattice, TValue> : IWideningLattice<ImmutableDictionary<TKey, TValue>>
     where TKey : notnull
     where TLattice : ILattice<TValue>, new()
 {
@@ -89,5 +96,35 @@ public sealed class MapLattice<TKey, TLattice, TValue> : ILattice<ImmutableDicti
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Widens <paramref name="previous"/> towards <paramref name="incoming"/> point-wise.
+    /// Keys present only in one argument keep their value (widening against the sub-lattice
+    /// ⊥ is the value itself).
+    /// </summary>
+    /// <param name="previous">The previous iterate (the accumulated map).</param>
+    /// <param name="incoming">The newly produced map.</param>
+    /// <returns>The widened map, an upper bound of both arguments.</returns>
+    public ImmutableDictionary<TKey, TValue> Widen(
+        ImmutableDictionary<TKey, TValue> previous,
+        ImmutableDictionary<TKey, TValue> incoming)
+    {
+        ArgumentNullException.ThrowIfNull(previous);
+        ArgumentNullException.ThrowIfNull(incoming);
+
+        if (_subLattice is not IWideningLattice<TValue> wideningSubLattice)
+            return Join(previous, incoming);
+
+        var builder = previous.ToBuilder();
+
+        foreach (var kvp in incoming)
+        {
+            builder[kvp.Key] = builder.TryGetValue(kvp.Key, out var existing)
+                ? wideningSubLattice.Widen(existing, kvp.Value)
+                : kvp.Value;
+        }
+
+        return builder.ToImmutable();
     }
 }

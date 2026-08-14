@@ -43,7 +43,12 @@ public sealed class WorklistSolver<T>
         ArgumentNullException.ThrowIfNull(cfg);
 
         var inStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
-        var outStates = cfg.Blocks.ToDictionary(b => b, b => _transfer.Apply(_lattice.Bottom, b));
+        // Out-states start at ⊥ (standard Kildall seeding). Pre-computing transfer(⊥) here
+        // would evaluate blocks against a state that pretends "nothing is known yet" means
+        // "every variable is ⊤" (map-miss semantics), and an early join could pick up that
+        // garbage before the block's first real visit — under a widening ratchet the
+        // contamination then never recovers (found via the interval pipeline, ovs-kmj).
+        var outStates = cfg.Blocks.ToDictionary(b => b, _ => _lattice.Bottom);
 
         var entryBlock = cfg.Blocks.FirstOrDefault(b => b.Kind == BasicBlockKind.Entry);
         if (entryBlock is not null)
@@ -70,6 +75,17 @@ public sealed class WorklistSolver<T>
             rpoIndex[rpo[i]] = i;
         }
 
+        // Predecessors whose out-state has not been computed yet contribute nothing to a
+        // join: their out is ⊥ "because unvisited", not "because empty", and refining that
+        // ⊥ would materialize spurious facts (a map-miss reads as ⊤). Tracking computed
+        // blocks explicitly keeps first-sweep joins clean — critical under widening, whose
+        // ratchet would otherwise lock in the garbage forever (found via ovs-kmj).
+        var hasComputedOut = new HashSet<BasicBlock>();
+        if (entryBlock is not null)
+        {
+            hasComputedOut.Add(entryBlock);
+        }
+
         int iterations = 0;
         while (worklist.Count > 0 && iterations < _maxIterations)
         {
@@ -77,13 +93,15 @@ public sealed class WorklistSolver<T>
             var block = worklist.Dequeue();
             iterations++;
 
-            var newIn = ComputeInState(block, outStates, entryBlock, initialEntryState);
+            var newIn = ComputeInState(block, outStates, entryBlock, initialEntryState, hasComputedOut);
+            bool firstVisit = hasComputedOut.Add(block);
+
             if (wideningLattice is not null && HasBackEdgePredecessor(block, rpoIndex))
             {
                 newIn = wideningLattice.Widen(inStates[block], newIn);
             }
 
-            if (AreEqual(newIn, inStates[block]))
+            if (!firstVisit && AreEqual(newIn, inStates[block]))
             {
                 continue;
             }
@@ -91,14 +109,12 @@ public sealed class WorklistSolver<T>
             inStates[block] = newIn;
             var newOut = _transfer.Apply(newIn, block);
 
-            if (AreEqual(newOut, outStates[block]))
-            {
-                continue;
-            }
-
+            bool outChanged = !AreEqual(newOut, outStates[block]);
             outStates[block] = newOut;
 
-            if (successors.TryGetValue(block, out var succs))
+            // On the first visit the successors must re-examine this edge even when the
+            // out-state stayed ⊥-equal: they may have skipped it as not-yet-computed.
+            if ((outChanged || firstVisit) && successors.TryGetValue(block, out var succs))
             {
                 foreach (var succ in succs)
                 {
@@ -154,23 +170,35 @@ public sealed class WorklistSolver<T>
         return successors;
     }
 
-    private T ComputeInState(BasicBlock block, Dictionary<BasicBlock, T> outStates, BasicBlock? entryBlock, T initialEntryState)
+    private T ComputeInState(
+        BasicBlock block,
+        Dictionary<BasicBlock, T> outStates,
+        BasicBlock? entryBlock,
+        T initialEntryState,
+        HashSet<BasicBlock> hasComputedOut)
     {
         if (block == entryBlock)
         {
             return initialEntryState;
         }
 
-        var preds = block.Predecessors;
-        if (preds.IsEmpty)
+        // Edges from predecessors whose out-state is not computed yet are skipped: their
+        // out is ⊥-as-unvisited, and refine(⊥) must stay ⊥ — but the refiner cannot tell
+        // an unvisited ⊥ map from a computed empty one (a map-miss reads as ⊤), so the
+        // solver enforces it here. Every block is visited at least once, so no reachable
+        // edge is skipped at fixpoint.
+        T state = _lattice.Bottom;
+        bool any = false;
+        foreach (var pred in block.Predecessors)
         {
-            return _lattice.Bottom;
-        }
+            if (pred.Source is not { } source || !hasComputedOut.Contains(source))
+            {
+                continue;
+            }
 
-        var state = RefineOutState(outStates[preds[0].Source], preds[0]);
-        for (int i = 1; i < preds.Length; i++)
-        {
-            state = _lattice.Join(state, RefineOutState(outStates[preds[i].Source], preds[i]));
+            var refined = RefineOutState(outStates[source], pred);
+            state = any ? _lattice.Join(state, refined) : refined;
+            any = true;
         }
 
         return state;

@@ -1,0 +1,36 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_recursive_callee_deref,
+  Source:
+class C
+{
+    string F(int n)
+    {
+        if (n > 0)
+        {
+            return F(n - 1);
+        }
+
+        return null;
+    }
+
+    int M()
+    {
+        var s = F(3);
+        return s.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 's',
+      Severity: Warning,
+      Location: {
+        StartLine: 17,
+        StartColumn: 16,
+        EndLine: 17,
+        EndColumn: 24
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_guarded_call_result_silent,
+  Source:
+class C
+{
+    string F() { return null; }
+
+    int M()
+    {
+        var s = F();
+        if (s != null)
+        {
+            return s.Length;
+        }
+
+        return 0;
+    }
+}
+}

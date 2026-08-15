@@ -22,11 +22,18 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
 {
     private static readonly NullStateLattice _lattice = new();
     private readonly SsaIndex _ssa;
+    private readonly INullabilitySummaryLookup? _summaries;
 
     public NullStateSsaTransfer(SsaIndex ssa)
+        : this(ssa, summaries: null)
+    {
+    }
+
+    public NullStateSsaTransfer(SsaIndex ssa, INullabilitySummaryLookup? summaries)
     {
         ArgumentNullException.ThrowIfNull(ssa);
         _ssa = ssa;
+        _summaries = summaries;
     }
 
     /// <inheritdoc />
@@ -118,9 +125,20 @@ public sealed class NullStateSsaTransfer : ITransfer<ImmutableDictionary<SsaId, 
             ISimpleAssignmentOperation assign => Evaluate(assign.Value, state),
             IFlowCaptureReferenceOperation cref =>
                 Lookup(cref, new TrackedKey.Capture(cref.Id), state),
+            // Inter-procedural (summary-based, k=0): the call result carries the callee's
+            // summarized return nullability; without a summary the result stays Unknown.
+            IInvocationOperation inv when _summaries is not null =>
+                _summaries.ReturnStateOf(inv.TargetMethod),
             _ => NullState.Unknown,
         };
     }
+
+    /// <summary>
+    /// Evaluates the null-state of a value expression under <paramref name="state"/> —
+    /// used by the summary provider to read return-site values.
+    /// </summary>
+    internal NullState EvaluateValue(IOperation expr, ImmutableDictionary<SsaId, NullState> state)
+        => Evaluate(expr, state);
 
     private NullState Lookup(IOperation op, TrackedKey key, ImmutableDictionary<SsaId, NullState> state)
     {

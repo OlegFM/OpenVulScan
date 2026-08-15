@@ -1,0 +1,29 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_result_through_local_copy_deref,
+  Source:
+class C
+{
+    string F() { return null; }
+
+    int M()
+    {
+        var s = F();
+        var t = s;
+        return t.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 't',
+      Severity: Warning,
+      Location: {
+        StartLine: 10,
+        StartColumn: 16,
+        EndLine: 10,
+        EndColumn: 24
+      }
+    }
+  ]
+}

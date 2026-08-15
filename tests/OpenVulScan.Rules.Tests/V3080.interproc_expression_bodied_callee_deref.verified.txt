@@ -1,0 +1,28 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_expression_bodied_callee_deref,
+  Source:
+class C
+{
+    string F() => null;
+
+    int M()
+    {
+        var s = F();
+        return s.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 's',
+      Severity: Warning,
+      Location: {
+        StartLine: 9,
+        StartColumn: 16,
+        EndLine: 9,
+        EndColumn: 24
+      }
+    }
+  ]
+}

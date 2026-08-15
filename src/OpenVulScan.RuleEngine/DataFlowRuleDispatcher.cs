@@ -23,6 +23,7 @@ public sealed class DataFlowRuleDispatcher<TLattice>
     {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<Diagnostic>();
+        var session = new AnalysisSession(_compilation, cancellationToken);
 
         foreach (var tree in _compilation.SyntaxTrees)
         {
@@ -44,7 +45,7 @@ public sealed class DataFlowRuleDispatcher<TLattice>
                 var entries = _rules
                     .Select(rule => (
                         Rule: rule,
-                        Transfer: rule.CreateTransfer(ssaIndex),
+                        Transfer: rule.CreateTransfer(ssaIndex, session),
                         Refiner: rule.CreateEdgeRefiner(ssaIndex)))
                     .ToList();
 

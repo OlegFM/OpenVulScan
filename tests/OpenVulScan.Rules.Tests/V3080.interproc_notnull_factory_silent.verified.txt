@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_notnull_factory_silent,
+  Source:
+class C
+{
+    object F() { return new object(); }
+
+    string M()
+    {
+        var o = F();
+        return o.ToString();
+    }
+}
+}

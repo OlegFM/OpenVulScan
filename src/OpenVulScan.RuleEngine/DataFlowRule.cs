@@ -27,6 +27,14 @@ public abstract class DataFlowRule<TLattice> : IDataFlowRule
     //   transfer would merge the two pipelines without any error.
     public virtual ITransfer<TLattice> CreateTransfer(SsaIndex ssaIndex) => Transfer;
 
+    // Session-aware factory: rules that need compilation-wide artifacts (summaries, call
+    // graph) override this one; the default ignores the session. The same statelessness
+    // contract applies, extended by one clause: the transfer may capture per-session
+    // artifacts, because every rule in a group receives the SAME session instance — the
+    // resulting transfers remain behaviourally identical.
+    public virtual ITransfer<TLattice> CreateTransfer(SsaIndex ssaIndex, AnalysisSession session)
+        => CreateTransfer(ssaIndex);
+
     // Default implementation: SSA-unaware refiner from the legacy property.
     // SSA-aware rules override this to construct a refiner over the index.
     //

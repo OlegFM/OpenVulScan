@@ -1,0 +1,30 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_two_method_chain_deref,
+  Source:
+class C
+{
+    string F() { return null; }
+
+    string G() { return F(); }
+
+    int M()
+    {
+        var s = G();
+        return s.Length;
+    }
+},
+  Diagnostics: [
+    {
+      Id: V3080,
+      Message: Possible null dereference of 's',
+      Severity: Warning,
+      Location: {
+        StartLine: 11,
+        StartColumn: 16,
+        EndLine: 11,
+        EndColumn: 24
+      }
+    }
+  ]
+}

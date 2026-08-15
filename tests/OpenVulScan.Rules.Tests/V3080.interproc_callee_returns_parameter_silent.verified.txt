@@ -1,0 +1,15 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_callee_returns_parameter_silent,
+  Source:
+class C
+{
+    string F(string s) { return s; }
+
+    int M()
+    {
+        var s = F("x");
+        return s.Length;
+    }
+}
+}

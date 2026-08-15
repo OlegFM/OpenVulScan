@@ -1,0 +1,14 @@
+﻿{
+  RuleCode: V3080,
+  TestCase: interproc_conditional_access_silent,
+  Source:
+class C
+{
+    string F() { return null; }
+
+    int? M()
+    {
+        return F()?.Length;
+    }
+}
+}

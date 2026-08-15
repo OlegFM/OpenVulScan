@@ -16,6 +16,14 @@ public abstract class NullStateRuleBase : DataFlowRule<ImmutableDictionary<SsaId
     public sealed override ITransfer<ImmutableDictionary<SsaId, NullState>> CreateTransfer(SsaIndex ssaIndex)
         => new NullStateSsaTransfer(ssaIndex);
 
+    // Inter-procedural: invocation results carry callee return nullability (ovs-xwx.12).
+    public sealed override ITransfer<ImmutableDictionary<SsaId, NullState>> CreateTransfer(
+        SsaIndex ssaIndex, AnalysisSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        return new NullStateSsaTransfer(ssaIndex, session.GetNullabilitySummaries());
+    }
+
     public sealed override IEdgeRefiner<ImmutableDictionary<SsaId, NullState>>? CreateEdgeRefiner(SsaIndex ssaIndex)
         => new NullStateSsaEdgeRefiner(ssaIndex);
 }
